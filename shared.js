@@ -3,7 +3,7 @@
 ===================================================================================== */
 
 // >>> Paste your deployed Apps Script Web App URL here (ends in /exec) <<<
-const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxWb56RBtQ_BaTKeZUU2e_9GOhJDUEY4-d1D2-oQWps7mSdreuFIVSO4wNLgeveBLU/exec';
 
 /** SHA-256 hash → lowercase hex, using the browser's built-in Web Crypto API (no library needed). */
 async function sha256Hex(text){
