@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin — OKV Organization Management System</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --teal-950:#0a2420; --teal-900:#0e352e; --teal-800:#134a3d; --teal-700:#1a6350;
+  --gold-500:#d6a13d; --gold-600:#b8862a; --paper:#f7f6f2; --ink:#1c2321; --ink-soft:#647069; --line:#e7e3d9;
+}
+*{box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif; color:var(--ink); margin:0; background:var(--paper);}
+h1,h2,h3,h5,.brand{font-family:'Sora',system-ui,sans-serif;}
+
+#loadScreen{position:fixed; inset:0; background:var(--teal-950); z-index:3000; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;}
+#loadScreen.hide{display:none;}
+
+#sidebar{position:fixed; top:0; left:0; bottom:0; width:250px; background:var(--teal-950); color:#eaf2ef; padding:22px 16px; overflow-y:auto; z-index:100;}
+.brand-row{display:flex; align-items:center; gap:10px; margin-bottom:26px;}
+.brand-mark{width:36px; height:36px; border-radius:9px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); color:var(--teal-950); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:9.5px; letter-spacing:-.3px;}
+.brand-row div{font-weight:800; font-size:.95rem;}
+.brand-row .sub{font-size:.68rem; color:#9fc3b7; font-weight:500;}
+.nav-group-label{font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:#7fa899; margin:18px 0 6px; padding-left:10px;}
+.side-link{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:#c9dcd5; text-decoration:none; font-size:.87rem; font-weight:600; cursor:pointer; margin-bottom:2px;}
+.side-link:hover{background:rgba(255,255,255,.06); color:#fff;}
+.side-link.active{background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); color:var(--teal-950);}
+.side-link i{font-size:1rem; width:18px;}
+
+#main{margin-left:250px; min-height:100vh;}
+#topbar{background:#fff; border-bottom:1px solid var(--line); padding:16px 26px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+#topbar h2{margin:0; font-size:1.2rem; font-weight:700;}
+#topbar .sub{color:var(--ink-soft); font-size:.8rem;}
+.content{padding:24px 26px 60px;}
+.view{display:none;}
+.view.active{display:block;}
+
+.panel{background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:18px; box-shadow:0 1px 3px rgba(15,40,33,.05); transition:box-shadow .16s ease;}
+.panel:hover{box-shadow:0 4px 16px rgba(15,40,33,.07);}
+.settings-pill-panel{display:none;}
+.settings-pill-panel.active{display:block;}
+.form-check.form-switch{padding-left:2.8em;}
+.plan-row{display:grid; grid-template-columns:1.4fr .8fr .6fr; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+.plan-row:last-child{border-bottom:none;}
+@media (max-width:700px){.plan-row{grid-template-columns:1fr;}}
+.panel h5{font-size:1rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+.panel h5 i{color:var(--gold-600);}
+
+.stat-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px; transition:transform .16s ease, box-shadow .16s ease; box-shadow:0 1px 3px rgba(15,40,33,.05);}
+.stat-card:hover{transform:translateY(-3px); box-shadow:0 10px 24px rgba(15,40,33,.10); border-color:#d8e4de;}
+.stat-icon{width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:11px; font-size:.95rem; flex-shrink:0;}
+.stat-icon.teal{background:rgba(26,99,80,.11); color:var(--teal-700);}
+.stat-icon.gold{background:rgba(214,161,61,.16); color:var(--gold-600);}
+.stat-label{font-size:.76rem; color:var(--ink-soft); font-weight:600; text-transform:uppercase; letter-spacing:.04em;}
+.stat-num{font-family:'Sora',sans-serif; font-weight:800; font-size:1.6rem; color:var(--teal-950);}
+
+.btn-teal{background:var(--teal-800); border-color:var(--teal-800); color:#fff;}
+.btn-teal:hover{background:var(--teal-900); border-color:var(--teal-900); color:#fff;}
+.btn-amber{background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); border:none; color:var(--teal-950); font-weight:700;}
+.btn-amber:hover{color:var(--teal-950); opacity:.92;}
+
+.table-toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+.badge-pill{font-size:.68rem; font-weight:700; padding:.25em .65em; border-radius:20px;}
+.badge-active{background:#e3f3ea; color:#2f7d5a;}
+.badge-trialing{background:#fdf3e0; color:#8a6112;}
+.badge-inactive{background:#fbe9e7; color:#b83a3a;}
+.badge-pending{background:#fdf3e0; color:#8a6112;}
+.badge-confirmed{background:#e3f3ea; color:#2f7d5a;}
+.badge-rejected{background:#fbe9e7; color:#b83a3a;}
+
+#toastHost{position:fixed; bottom:18px; right:18px; z-index:2000; display:flex; flex-direction:column; align-items:flex-end;}
+@keyframes toastIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+@media (max-width:920px){
+  #sidebar{transform:translateX(-100%); transition:transform .2s; box-shadow:0 0 30px rgba(0,0,0,.3);}
+  #sidebar.open{transform:translateX(0);}
+  #main{margin-left:0;}
+}
+
+/* ---------- phone refinement ---------- */
+@media(max-width:575.98px){
+  #topbar{padding:12px 16px;}
+  #topbar h2{font-size:1.05rem;}
+  .content{padding:16px 14px 48px;}
+  .panel{padding:15px 16px; border-radius:10px;}
+  .stat-card{padding:14px 15px;}
+  .table-toolbar .search-box{max-width:none; flex-basis:100%;}
+  .table-toolbar input#orgSearch{max-width:none !important; flex-basis:100%;}
+  .modal-dialog{margin:.5rem;}
+  #toastHost{left:12px; right:12px; bottom:12px; align-items:stretch;}
+  #toastHost > div{max-width:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="loadScreen"><div><i class="bi bi-hourglass-split me-2"></i>Loading Super Admin Dashboard…</div></div>
+
+<div id="sidebar">
+  <div class="brand-row">
+    <span class="brand-mark">OKV</span>
+    <div>OKV OMS<div class="sub">Super Admin</div></div>
+  </div>
+
+  <a class="side-link active" data-view="dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+  <a class="side-link" data-view="organizations"><i class="bi bi-buildings"></i> Organizations</a>
+  <a class="side-link" data-view="capacity"><i class="bi bi-hdd-stack"></i> Storage &amp; Capacity</a>
+  <a class="side-link" data-view="payments"><i class="bi bi-cash-stack"></i> Payment Requests<span id="pendingBadge" class="badge-pill badge-pending" style="display:none; margin-left:auto;"></span></a>
+  <a class="side-link" data-view="messages"><i class="bi bi-send"></i> Messages</a>
+
+  <div class="nav-group-label">Platform</div>
+  <a class="side-link" data-view="settings"><i class="bi bi-gear"></i> Platform Settings</a>
+  <a class="side-link" data-view="manual"><i class="bi bi-book"></i> Admin Manual</a>
+  <a class="side-link" data-view="account"><i class="bi bi-person-circle"></i> My Account</a>
+
+  <div style="margin-top:24px; padding:16px 20px 4px; font-size:.68rem; color:#6f948a; border-top:1px solid rgba(255,255,255,.08);">
+    <a href="privacy.html" target="_blank" style="color:#6f948a;">Privacy Policy</a> · <a href="terms.html" target="_blank" style="color:#6f948a;">Terms</a> · <a href="refund-policy.html" target="_blank" style="color:#6f948a;">Refunds</a>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div>
+      <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button>
+      <h2 id="topbarTitle">Dashboard</h2>
+      <div class="sub" id="topbarSub">Platform-wide overview</div>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Log Out</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ================= DASHBOARD ================= -->
+    <section class="view active" id="view-dashboard">
+      <div class="row g-3 mb-2">
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-buildings"></i></div><div class="stat-label">Organizations</div><div class="stat-num" id="statOrgs">–</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-check-circle"></i></div><div class="stat-label">Active Subscriptions</div><div class="stat-num" id="statActive">–</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-hourglass-split"></i></div><div class="stat-label">On Free Trial</div><div class="stat-num" id="statTrialing">–</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-cash-coin"></i></div><div class="stat-label">Pending Payments</div><div class="stat-num" id="statPending">–</div></div></div>
+      </div>
+      <div class="panel">
+        <h5><i class="bi bi-exclamation-triangle"></i> Expiring Soon (within 3 days) or Expired</h5>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Organization</th><th>Owner</th><th>Plan</th><th>Status</th><th>Days Remaining</th></tr></thead>
+            <tbody id="tbody-expiring"></tbody>
+          </table>
+        </div>
+        <div class="text-muted" id="empty-expiring" style="display:none; font-size:.85rem;">Nothing expiring soon.</div>
+      </div>
+    </section>
+
+    <!-- ================= ORGANIZATIONS ================= -->
+    <section class="view" id="view-organizations">
+      <div class="panel">
+        <div class="table-toolbar">
+          <input type="text" class="form-control form-control-sm" style="max-width:260px;" id="orgSearch" placeholder="Search organizations…">
+          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="loadOrganizations()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Organization</th><th>Owner</th><th>Contact</th><th>Plan</th><th>Status</th><th>Renews / Trial Ends</th><th>Users</th><th></th></tr></thead>
+            <tbody id="tbody-orgs"></tbody>
+          </table>
+        </div>
+        <div class="text-muted" id="empty-orgs" style="display:none; font-size:.85rem;">No organizations yet.</div>
+      </div>
+    </section>
+
+    <!-- ================= STORAGE & CAPACITY (Super Admin only) ================= -->
+    <section class="view" id="view-capacity">
+      <div class="panel">
+        <div class="table-toolbar">
+          <p class="text-muted mb-0" style="font-size:.83rem;">Each organization has its own Google Sheets file, capped at 10,000,000 cells. Checked automatically once a day — this is a snapshot, not a live scan.</p>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="loadTenantCapacity()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Organization</th><th>% of Cell Limit Used</th><th>Est. Time Remaining (to ~90%)</th><th>Status</th><th>Recommended Action</th><th>Last Checked</th></tr></thead>
+            <tbody id="tbody-capacity"></tbody>
+          </table>
+        </div>
+        <div class="text-muted" id="empty-capacity" style="display:none; font-size:.85rem;">No capacity data yet — it appears after the first daily check runs.</div>
+      </div>
+    </section>
+
+    <!-- ================= PAYMENT REQUESTS ================= -->
+    <section class="view" id="view-payments">
+      <div class="panel">
+        <div class="table-toolbar">
+          <div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-secondary pay-filter-btn active" data-filter="pending">Pending</button>
+            <button class="btn btn-sm btn-outline-secondary pay-filter-btn" data-filter="confirmed">Confirmed</button>
+            <button class="btn btn-sm btn-outline-secondary pay-filter-btn" data-filter="rejected">Rejected</button>
+            <button class="btn btn-sm btn-outline-secondary pay-filter-btn" data-filter="all">All</button>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="loadPaymentRequests()"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Organization</th><th>Contact</th><th>Plan</th><th>Cycle</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbody-payments"></tbody>
+          </table>
+        </div>
+        <div class="text-muted" id="empty-payments" style="display:none; font-size:.85rem;">No payment requests here.</div>
+      </div>
+    </section>
+
+    <!-- ================= MESSAGES ================= -->
+    <section class="view" id="view-messages">
+      <div class="panel">
+        <h5><i class="bi bi-send"></i> Message Organizations</h5>
+        <p class="text-muted" style="font-size:.83rem;">Send a general announcement to every organization, or a personalized message to specific ones — over email, SMS, or WhatsApp.</p>
+
+        <div class="mb-3">
+          <label class="form-label d-flex justify-content-between">
+            <span>Recipients</span>
+            <a href="#" id="orgSelectAllLink" style="font-size:.78rem;">Select All</a>
+          </label>
+          <div id="orgRecipientList" style="max-height:240px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:10px;"></div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Channel(s)</label>
+          <div class="d-flex flex-wrap gap-3">
+            <div class="form-check"><input class="form-check-input" type="checkbox" value="email" id="pchEmail" checked><label class="form-check-label" for="pchEmail">Email</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" value="sms" id="pchSms"><label class="form-check-label" for="pchSms">SMS</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" value="whatsapp" id="pchWhatsapp"><label class="form-check-label" for="pchWhatsapp">WhatsApp</label></div>
+          </div>
+          <div class="build-note mt-2" style="font-size:.76rem; color:var(--ink-soft); background:#f3efe6; border:1px dashed var(--line); border-radius:8px; padding:10px 14px;">Email sends immediately. SMS and WhatsApp don't have a paid gateway connected, so you'll get tap-to-send links per recipient instead.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Subject <span class="text-muted" style="font-weight:400;">(email only)</span></label>
+          <input type="text" class="form-control" id="pMsgSubject">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Message</label>
+          <textarea class="form-control" id="pMsgBody" rows="4" required></textarea>
+        </div>
+
+        <button class="btn btn-teal" id="pMsgSendBtn"><i class="bi bi-send me-1"></i>Send</button>
+        <span id="pMsgResult" style="font-size:.83rem; margin-left:10px;"></span>
+
+        <div id="pMsgLinksPanel" style="display:none; margin-top:18px;">
+          <h6 style="font-size:.85rem; font-weight:700;">Tap to send (SMS / WhatsApp)</h6>
+          <div id="pMsgLinksList" style="font-size:.85rem;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PLATFORM SETTINGS ================= -->
+    <section class="view" id="view-settings">
+      <ul class="nav nav-pills mb-3 flex-wrap" id="settingsPills">
+        <li class="nav-item"><button type="button" class="nav-link active settings-pill-btn" data-pill="contact">Contact &amp; Manual Payment</button></li>
+        <li class="nav-item"><button type="button" class="nav-link settings-pill-btn" data-pill="branding">Branding</button></li>
+        <li class="nav-item"><button type="button" class="nav-link settings-pill-btn" data-pill="messaging">Email / SMS / WhatsApp</button></li>
+        <li class="nav-item"><button type="button" class="nav-link settings-pill-btn" data-pill="gateways">Payment Gateways</button></li>
+        <li class="nav-item"><button type="button" class="nav-link settings-pill-btn" data-pill="plans">Plans &amp; Pricing</button></li>
+      </ul>
+
+      <!-- ===================== CONTACT & MANUAL PAYMENT ===================== -->
+      <div class="settings-pill-panel active" data-pill-panel="contact">
+        <div class="panel">
+          <h5><i class="bi bi-headset"></i> Contact Details</h5>
+          <p class="text-muted" style="font-size:.83rem;">Shown across the system — marketing site, auth pages, and every org's Subscription/payment form.</p>
+          <form id="contactForm" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Email</label><input type="email" class="form-control" id="cfgOwnerEmail"></div>
+            <div class="col-md-4"><label class="form-label">Phone</label><input type="text" class="form-control" id="cfgOwnerPhone"></div>
+            <div class="col-md-4"><label class="form-label">Website</label><input type="text" class="form-control" id="cfgOwnerWebsite"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Contact Details</button> <span id="contactMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-bank"></i> Manual Payment (Bank Transfer)</h5>
+          <p class="text-muted" style="font-size:.83rem;">Shown to organizations submitting an upgrade payment by bank transfer + screenshot.</p>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="cfgManualBankEnabled">
+            <label class="form-check-label" for="cfgManualBankEnabled">Enable manual bank transfer as a payment method</label>
+          </div>
+          <form id="bankForm" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Account Number</label><input type="text" class="form-control" id="cfgBankAccountNumber"></div>
+            <div class="col-md-4"><label class="form-label">Bank Name</label><input type="text" class="form-control" id="cfgBankName"></div>
+            <div class="col-md-4"><label class="form-label">Account Name</label><input type="text" class="form-control" id="cfgBankAccountName"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Bank Details</button> <span id="bankMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== BRANDING ===================== -->
+      <div class="settings-pill-panel" data-pill-panel="branding">
+        <div class="panel">
+          <h5><i class="bi bi-palette"></i> Brand Identity</h5>
+          <p class="text-muted" style="font-size:.83rem;">Applied live across every page — marketing site, dashboards, and auth pages — the next time each one loads.</p>
+          <form id="brandingForm" class="row g-3">
+            <div class="col-md-6"><label class="form-label">System / Brand Name</label><input type="text" class="form-control" id="cfgBrandName"></div>
+            <div class="col-md-6"><label class="form-label">Tagline</label><input type="text" class="form-control" id="cfgSiteTagline"></div>
+            <div class="col-md-3">
+              <label class="form-label">Primary Color</label>
+              <input type="color" class="form-control form-control-color w-100" id="cfgThemePrimaryColor">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Accent Color</label>
+              <input type="color" class="form-control form-control-color w-100" id="cfgThemeAccentColor">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Logo</label>
+              <input type="file" class="form-control" id="cfgLogoFile" accept="image/*">
+              <div class="text-muted mt-1" style="font-size:.76rem;">Replaces the "O" mark everywhere. Leave blank to keep the current logo.</div>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Branding</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="resetLogoBtn">Remove Custom Logo</button>
+              <span id="brandingMsg" style="font-size:.83rem; margin-left:6px;"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== EMAIL / SMS / WHATSAPP ===================== -->
+      <div class="settings-pill-panel" data-pill-panel="messaging">
+        <div class="panel">
+          <h5><i class="bi bi-envelope-paper"></i> Email</h5>
+          <p class="text-muted" style="font-size:.83rem;">Email always sends via the Google account this system is deployed under — these just control the display name and reply-to address. Applies only to emails <b>OKV Technology sends</b> (welcome, password reset, payment confirmations, trial reminders, platform broadcasts) — never to messages an organization sends to its own members or team, which always carry that organization's own identity.</p>
+          <form id="emailCfgForm" class="row g-3">
+            <div class="col-md-6"><label class="form-label">From Name</label><input type="text" class="form-control" id="cfgEmailFromName"></div>
+            <div class="col-md-6"><label class="form-label">Reply-To Address</label><input type="email" class="form-control" id="cfgEmailReplyTo"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Email Settings</button> <span id="emailCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-chat-dots"></i> SMS</h5>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="cfgSmsEnabled"><label class="form-check-label" for="cfgSmsEnabled">Send real SMS through a gateway (otherwise, tap-to-send links are used)</label></div>
+          <form id="smsCfgForm" class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Provider</label>
+              <select class="form-select" id="cfgSmsProvider">
+                <option value="termii">Termii</option>
+                <option value="twilio">Twilio</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">API Key</label><input type="password" class="form-control" id="cfgSmsApiKey"></div>
+            <div class="col-md-4"><label class="form-label">Sender ID</label><input type="text" class="form-control" id="cfgSmsSenderId"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save SMS Settings</button> <span id="smsCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-whatsapp"></i> WhatsApp</h5>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="cfgWhatsappEnabled"><label class="form-check-label" for="cfgWhatsappEnabled">Send real WhatsApp messages through the Cloud API (otherwise, tap-to-send links are used)</label></div>
+          <form id="whatsappCfgForm" class="row g-3">
+            <div class="col-md-6"><label class="form-label">Access Token</label><input type="password" class="form-control" id="cfgWhatsappAccessToken"></div>
+            <div class="col-md-6"><label class="form-label">Phone Number ID</label><input type="text" class="form-control" id="cfgWhatsappPhoneId"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save WhatsApp Settings</button> <span id="whatsappCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== PAYMENT GATEWAYS ===================== -->
+      <div class="settings-pill-panel" data-pill-panel="gateways">
+        <div class="panel">
+          <h5><i class="bi bi-credit-card"></i> Paystack <span class="badge bg-success" style="font-size:.65rem;">Connected checkout</span></h5>
+          <p class="text-muted" style="font-size:.83rem;">The only gateway with a working automatic checkout in this build — orgs pay by card/bank via Paystack's page and are upgraded automatically the moment payment is confirmed.</p>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="cfgPaystackEnabled"><label class="form-check-label" for="cfgPaystackEnabled">Enable Paystack</label></div>
+          <form id="paystackCfgForm" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Public Key</label><input type="text" class="form-control" id="cfgPaystackPublicKey"></div>
+            <div class="col-md-4"><label class="form-label">Secret Key</label><input type="password" class="form-control" id="cfgPaystackSecretKey"></div>
+            <div class="col-md-4"><label class="form-label">Currency</label><input type="text" class="form-control" id="cfgPaystackCurrency" placeholder="NGN"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Paystack Settings</button> <span id="paystackCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-credit-card"></i> Flutterwave <span class="badge bg-secondary" style="font-size:.65rem;">Credentials only</span></h5>
+          <p class="text-muted" style="font-size:.83rem;">Stores your credentials for when checkout is wired up — not connected to a live payment flow yet (see README).</p>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="cfgFlutterwaveEnabled"><label class="form-check-label" for="cfgFlutterwaveEnabled">Enable Flutterwave</label></div>
+          <form id="flutterwaveCfgForm" class="row g-3">
+            <div class="col-md-6"><label class="form-label">Public Key</label><input type="text" class="form-control" id="cfgFlutterwavePublicKey"></div>
+            <div class="col-md-6"><label class="form-label">Secret Key</label><input type="password" class="form-control" id="cfgFlutterwaveSecretKey"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Flutterwave Settings</button> <span id="flutterwaveCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-credit-card"></i> Remita <span class="badge bg-secondary" style="font-size:.65rem;">Credentials only</span></h5>
+          <p class="text-muted" style="font-size:.83rem;">Stores your credentials for when checkout is wired up — not connected to a live payment flow yet (see README).</p>
+          <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="cfgRemitaEnabled"><label class="form-check-label" for="cfgRemitaEnabled">Enable Remita</label></div>
+          <form id="remitaCfgForm" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Merchant ID</label><input type="text" class="form-control" id="cfgRemitaMerchantId"></div>
+            <div class="col-md-4"><label class="form-label">API Key</label><input type="password" class="form-control" id="cfgRemitaApiKey"></div>
+            <div class="col-md-4"><label class="form-label">Service Type ID</label><input type="text" class="form-control" id="cfgRemitaServiceTypeId"></div>
+            <div class="col-12"><button type="submit" class="btn btn-teal btn-sm"><i class="bi bi-check2 me-1"></i>Save Remita Settings</button> <span id="remitaCfgMsg" style="font-size:.83rem;"></span></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== PLANS & PRICING ===================== -->
+      <div class="settings-pill-panel" data-pill-panel="plans">
+        <div class="panel">
+          <h5><i class="bi bi-tags"></i> Plans &amp; Pricing</h5>
+          <p class="text-muted" style="font-size:.83rem;">Prices shown on pricing.html and used to compute the Paystack charge. Turn a plan off to hide it from pricing.html without deleting it.</p>
+          <div id="plansList"></div>
+          <button class="btn btn-teal btn-sm mt-3" id="savePlansBtn"><i class="bi bi-check2 me-1"></i>Save Plans &amp; Pricing</button>
+          <span id="plansMsg" style="font-size:.83rem; margin-left:6px;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ADMIN MANUAL ================= -->
+    <section class="view" id="view-manual">
+      <div class="panel">
+        <h5><i class="bi bi-book"></i> Guides for Running the Platform</h5>
+        <p class="text-muted" style="font-size:.83rem;">Download any of these any time — plain text, easy to read on any device.</p>
+        <div id="manualList" class="row g-3"></div>
+      </div>
+    </section>
+
+
+    <!-- ================= MY ACCOUNT ================= -->
+    <section class="view" id="view-account">
+      <div class="panel">
+        <h5><i class="bi bi-shield-lock"></i> Change Password</h5>
+        <p class="text-muted" style="font-size:.83rem;">You're using the default password if you haven't changed it yet — do that now.</p>
+        <form id="changePasswordForm" class="row g-3" style="max-width:420px;">
+          <div class="col-12"><label class="form-label">Current Password</label><input type="password" class="form-control" id="cpCurrent" required></div>
+          <div class="col-12"><label class="form-label">New Password</label><input type="password" class="form-control" id="cpNew" required minlength="8"></div>
+          <div class="col-12"><label class="form-label">Confirm New Password</label><input type="password" class="form-control" id="cpConfirm" required minlength="8"></div>
+          <div class="col-12"><button type="submit" class="btn btn-teal btn-sm" id="cpSubmitBtn"><i class="bi bi-check2 me-1"></i>Update Password</button> <span id="cpNote" style="font-size:.83rem;"></span></div>
+        </form>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============ Edit Organization Modal ============ -->
+<div class="modal fade" id="editOrgModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Edit Organization</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="editOrgId">
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label">Organization Name</label><input type="text" class="form-control" id="editOrgName"></div>
+          <div class="col-12"><label class="form-label">Owner Full Name</label><input type="text" class="form-control" id="editOrgOwnerName"></div>
+          <div class="col-12"><label class="form-label">Owner Phone</label><input type="text" class="form-control" id="editOrgOwnerPhone"></div>
+          <div class="col-md-6">
+            <label class="form-label">Plan</label>
+            <select class="form-select" id="editOrgPlan">
+              <option value="">— unchanged —</option>
+              <option value="Starter — Monthly">Starter — Monthly</option>
+              <option value="Growth — Monthly">Growth — Monthly</option>
+              <option value="Starter — Bi-Annual">Starter — Bi-Annual</option>
+              <option value="Growth — Bi-Annual">Growth — Bi-Annual</option>
+              <option value="Starter — Yearly">Starter — Yearly</option>
+              <option value="Growth — Yearly">Growth — Yearly</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Billing Cycle</label>
+            <select class="form-select" id="editOrgCycle">
+              <option value="">— unchanged —</option>
+              <option value="monthly">Monthly</option>
+              <option value="biannual">Bi-Annual</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Subscription Status</label>
+            <select class="form-select" id="editOrgStatus">
+              <option value="">— unchanged —</option>
+              <option value="trialing">Trialing</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">Subscription Expiry</label><input type="date" class="form-control" id="editOrgExpiry"></div>
+        </div>
+        <div id="editOrgMsg" style="font-size:.83rem; margin-top:10px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-teal btn-sm" id="editOrgSaveBtn" onclick="saveOrganization()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Review Payment Modal ============ -->
+<div class="modal fade" id="reviewPayModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Review Payment Request</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="reviewPayId">
+        <div id="reviewPayDetails" style="font-size:.85rem; margin-bottom:14px;"></div>
+        <label class="form-label">Note (optional — included in the rejection email)</label>
+        <textarea class="form-control" id="reviewPayNote" rows="2"></textarea>
+        <div id="reviewPayMsg" style="font-size:.83rem; margin-top:10px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-danger btn-sm" onclick="submitPaymentReview('rejected')">Reject</button>
+        <button class="btn btn-teal btn-sm" onclick="submitPaymentReview('confirmed')">Confirm &amp; Upgrade</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastHost"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="shared.js"></script>
+<script>
+// ---------------------------------------------------------------- SESSION / AUTH
+let session = getSession();
+if(!session || !session.userId || !session.isSuperAdmin){
+  window.location.href = 'login.html';
+  throw new Error('Not a Super Admin session — redirecting.');
+}
+function authFieldsSA(){ return { orgId: session.orgId, requesterId: session.userId, requesterPasswordHash: session.passwordHash }; }
+function logout(){ clearSession(); window.location.href = 'login.html'; }
+
+function toast(message, kind){
+  kind = kind || 'info';
+  const host = document.getElementById('toastHost');
+  const colors = { info:'var(--teal-800)', success:'#2f7d5a', error:'#b83a3a' };
+  const el = document.createElement('div');
+  el.style.cssText = `background:${colors[kind]||colors.info}; color:#fff; padding:10px 16px; border-radius:9px; font-size:.83rem; box-shadow:0 6px 18px rgba(0,0,0,.25); margin-top:8px; max-width:320px; animation:toastIn .25s ease;`;
+  el.textContent = message;
+  host.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }, 4200);
+}
+
+// ---------------------------------------------------------------- NAV
+const titles = {
+  dashboard:['Dashboard','Platform-wide overview'],
+  organizations:['Organizations','Every organization on the platform'],
+  capacity:['Storage & Capacity','Per-organization Google Sheets cell usage — Super Admin only'],
+  payments:['Payment Requests','Review and confirm upgrade payments'],
+  messages:['Messages','Message one, several, or all organizations'],
+  settings:['Platform Settings','Contact details and bank/payment info shown across the system'],
+  manual:['Admin Manual','Guides for running the platform — download any time'],
+  account:['My Account','Change your password']
+};
+document.querySelectorAll('.side-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const view = link.dataset.view;
+    document.querySelectorAll('.side-link').forEach(l=>l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+view).classList.add('active');
+    document.getElementById('topbarTitle').textContent = titles[view][0];
+    document.getElementById('topbarSub').textContent = titles[view][1];
+    document.getElementById('sidebar').classList.remove('open');
+    if(view==='organizations') loadOrganizations();
+    if(view==='capacity') loadTenantCapacity();
+    if(view==='payments') loadPaymentRequests();
+    if(view==='messages') loadMessageRecipients();
+    if(view==='settings') loadPlatformSettings();
+    if(view==='manual') renderManualView();
+  });
+});
+
+// ---------------------------------------------------------------- DASHBOARD + ORGANIZATIONS
+let orgsCache = [];
+
+function daysRemainingFor(org){
+  const trialing = org.subscriptionStatus === 'trialing';
+  const expiryStr = trialing ? org.trialEndsAt : org.subscriptionExpiry;
+  if(!expiryStr) return null;
+  return Math.ceil((new Date(expiryStr).getTime() - Date.now()) / 86400000);
+}
+function statusBadge(status){
+  const cls = status === 'active' ? 'badge-active' : (status === 'trialing' ? 'badge-trialing' : 'badge-inactive');
+  return `<span class="badge-pill ${cls}">${status || '—'}</span>`;
+}
+
+async function loadOrganizations(){
+  try{
+    const res = await apiCall('listOrganizations', authFieldsSA());
+    if(!res.success){ toast(res.error || 'Could not load organizations.', 'error'); return; }
+    orgsCache = res.organizations;
+    renderOrgsTable();
+    renderDashboardStats();
+  }catch(err){
+    toast('Could not load organizations — check your connection.', 'error');
+  }
+}
+
+function renderOrgsTable(){
+  const q = (document.getElementById('orgSearch').value || '').toLowerCase();
+  const rows = orgsCache.filter(o => !q || (o.orgName||'').toLowerCase().includes(q) || (o.ownerEmail||'').toLowerCase().includes(q));
+  document.getElementById('tbody-orgs').innerHTML = rows.map(o => {
+    const dr = daysRemainingFor(o);
+    const expiryStr = o.subscriptionStatus === 'trialing' ? o.trialEndsAt : o.subscriptionExpiry;
+    return `<tr>
+      <td>${o.orgName || '—'}</td>
+      <td>${o.ownerFullName || '—'}</td>
+      <td>${o.ownerEmail || '—'}<br><span class="text-muted">${o.ownerPhone || ''}</span></td>
+      <td>${o.plan || '—'}</td>
+      <td>${statusBadge(o.subscriptionStatus)}</td>
+      <td>${expiryStr ? new Date(expiryStr).toDateString() : '—'}${dr!==null ? ` <span class="text-muted">(${dr}d)</span>` : ''}</td>
+      <td>${o.userCount}</td>
+      <td><button class="btn btn-sm btn-outline-secondary" onclick='openEditOrgModal(${JSON.stringify(o.orgId)})'><i class="bi bi-pencil"></i></button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('empty-orgs').style.display = rows.length ? 'none' : 'block';
+}
+document.getElementById('orgSearch').addEventListener('input', renderOrgsTable);
+
+function renderDashboardStats(){
+  document.getElementById('statOrgs').textContent = orgsCache.length;
+  document.getElementById('statActive').textContent = orgsCache.filter(o => o.subscriptionStatus === 'active').length;
+  document.getElementById('statTrialing').textContent = orgsCache.filter(o => o.subscriptionStatus === 'trialing').length;
+
+  const expiring = orgsCache.map(o => ({...o, dr: daysRemainingFor(o)})).filter(o => o.dr !== null && o.dr <= 3);
+  document.getElementById('tbody-expiring').innerHTML = expiring.map(o => `
+    <tr>
+      <td>${o.orgName}</td><td>${o.ownerFullName || '—'}</td><td>${o.plan || '—'}</td>
+      <td>${statusBadge(o.subscriptionStatus)}</td>
+      <td style="color:${o.dr<=0?'#b83a3a':'inherit'}; font-weight:${o.dr<=0?'700':'400'};">${o.dr<=0?'Expired':o.dr+' day'+(o.dr===1?'':'s')}</td>
+    </tr>`).join('');
+  document.getElementById('empty-expiring').style.display = expiring.length ? 'none' : 'block';
+}
+
+// ---------------------------------------------------------------- STORAGE & CAPACITY (Super Admin only)
+let capacityCache = [];
+
+function capacityStatusBadge(status){
+  const cls = status === 'Action Needed' ? 'badge-inactive' : (status === 'Monitor' ? 'badge-trialing' : 'badge-active');
+  return `<span class="badge-pill ${cls}">${status || 'Healthy'}</span>`;
+}
+
+async function loadTenantCapacity(){
+  try{
+    const res = await apiCall('listTenantCapacity', authFieldsSA());
+    if(!res.success){ toast(res.error || 'Could not load capacity data.', 'error'); return; }
+    capacityCache = res.tenants || [];
+    renderCapacityTable();
+  }catch(err){
+    toast('Could not load capacity data — check your connection.', 'error');
+  }
+}
+
+function renderCapacityTable(){
+  document.getElementById('tbody-capacity').innerHTML = capacityCache.map(t => {
+    const pct = (t.pctUsed === '' || t.pctUsed === undefined || t.pctUsed === null) ? null : Number(t.pctUsed);
+    return `<tr>
+      <td>${t.orgName || '—'}${t.dataSpreadsheetUrl ? ` <a href="${t.dataSpreadsheetUrl}" target="_blank" rel="noopener" title="Open this org's spreadsheet"><i class="bi bi-box-arrow-up-right" style="font-size:.75rem;"></i></a>` : ''}</td>
+      <td>${pct !== null ? pct.toFixed(1) + '%' : '—'}</td>
+      <td>${t.estRemainingLabel || 'Not yet checked'}</td>
+      <td>${capacityStatusBadge(t.capacityStatus)}</td>
+      <td style="max-width:320px; font-size:.8rem;">${t.capacityRecommendation || '—'}</td>
+      <td>${t.lastCapacityCheckAt ? new Date(t.lastCapacityCheckAt).toLocaleString() : '—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('empty-capacity').style.display = capacityCache.length ? 'none' : 'block';
+}
+
+function openEditOrgModal(orgId){
+  const o = orgsCache.find(x => x.orgId === orgId);
+  if(!o) return;
+  document.getElementById('editOrgId').value = orgId;
+  document.getElementById('editOrgName').value = o.orgName || '';
+  document.getElementById('editOrgOwnerName').value = o.ownerFullName || '';
+  document.getElementById('editOrgOwnerPhone').value = o.ownerPhone || '';
+  document.getElementById('editOrgPlan').value = '';
+  document.getElementById('editOrgCycle').value = '';
+  document.getElementById('editOrgStatus').value = '';
+  document.getElementById('editOrgExpiry').value = o.subscriptionExpiry ? o.subscriptionExpiry.slice(0,10) : '';
+  document.getElementById('editOrgMsg').textContent = '';
+  new bootstrap.Modal(document.getElementById('editOrgModal')).show();
+}
+
+async function saveOrganization(){
+  const msg = document.getElementById('editOrgMsg');
+  const btn = document.getElementById('editOrgSaveBtn');
+  const payload = { ...authFieldsSA(), targetOrgId: document.getElementById('editOrgId').value };
+  const orgName = document.getElementById('editOrgName').value.trim();
+  const fullName = document.getElementById('editOrgOwnerName').value.trim();
+  const phone = document.getElementById('editOrgOwnerPhone').value.trim();
+  const plan = document.getElementById('editOrgPlan').value;
+  const billingCycle = document.getElementById('editOrgCycle').value;
+  const subscriptionStatus = document.getElementById('editOrgStatus').value;
+  const expiry = document.getElementById('editOrgExpiry').value;
+  if(orgName) payload.orgName = orgName;
+  if(fullName) payload.fullName = fullName;
+  if(phone) payload.phone = phone;
+  if(plan) payload.plan = plan;
+  if(billingCycle) payload.billingCycle = billingCycle;
+  if(subscriptionStatus) payload.subscriptionStatus = subscriptionStatus;
+  if(expiry) payload.subscriptionExpiry = new Date(expiry).toISOString();
+
+  btn.disabled = true;
+  try{
+    const res = await apiCall('updateOrganization', payload);
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; btn.disabled=false; return; }
+    bootstrap.Modal.getInstance(document.getElementById('editOrgModal')).hide();
+    toast('Organization updated.', 'success');
+    loadOrganizations();
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+  btn.disabled = false;
+}
+
+// ---------------------------------------------------------------- PAYMENT REQUESTS
+let paymentsCache = [];
+let payFilter = 'pending';
+document.querySelectorAll('.pay-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pay-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    payFilter = btn.dataset.filter;
+    renderPaymentsTable();
+  });
+});
+
+async function loadPaymentRequests(){
+  try{
+    const res = await apiCall('listAllPaymentRequests', authFieldsSA());
+    if(!res.success){ toast(res.error || 'Could not load payment requests.', 'error'); return; }
+    paymentsCache = res.requests;
+    renderPaymentsTable();
+    const pending = paymentsCache.filter(p => p.status === 'pending').length;
+    document.getElementById('statPending').textContent = pending;
+    const badge = document.getElementById('pendingBadge');
+    badge.textContent = pending;
+    badge.style.display = pending ? 'inline-block' : 'none';
+  }catch(err){
+    toast('Could not load payment requests — check your connection.', 'error');
+  }
+}
+function renderPaymentsTable(){
+  const rows = payFilter === 'all' ? paymentsCache : paymentsCache.filter(p => p.status === payFilter);
+  document.getElementById('tbody-payments').innerHTML = rows.map(p => `
+    <tr>
+      <td>${p.orgName}</td>
+      <td>${p.contactEmail}<br><span class="text-muted">${p.contactPhone || ''}</span></td>
+      <td>${p.planRequested}</td>
+      <td>${p.billingCycle}</td>
+      <td>${p.submittedAt ? new Date(p.submittedAt).toDateString() : '—'}</td>
+      <td><span class="badge-pill badge-${p.status}">${p.status}</span></td>
+      <td>${p.status === 'pending' ? `<button class="btn btn-sm btn-teal" onclick='openReviewModal(${JSON.stringify(p.id)})'>Review</button>` : ''}</td>
+    </tr>`).join('');
+  document.getElementById('empty-payments').style.display = rows.length ? 'none' : 'block';
+}
+function openReviewModal(requestId){
+  const p = paymentsCache.find(x => x.id === requestId);
+  if(!p) return;
+  document.getElementById('reviewPayId').value = requestId;
+  document.getElementById('reviewPayDetails').innerHTML = `
+    <strong>${p.orgName}</strong><br>${p.contactEmail} · ${p.contactPhone || 'no phone'}<br>
+    Plan: ${p.planRequested} (${p.billingCycle})<br>Submitted: ${new Date(p.submittedAt).toDateString()}`;
+  document.getElementById('reviewPayNote').value = '';
+  document.getElementById('reviewPayMsg').textContent = '';
+  new bootstrap.Modal(document.getElementById('reviewPayModal')).show();
+}
+async function submitPaymentReview(decision){
+  const msg = document.getElementById('reviewPayMsg');
+  try{
+    const res = await apiCall('reviewPaymentRequest', {
+      ...authFieldsSA(), requestId: document.getElementById('reviewPayId').value,
+      decision, reviewNote: document.getElementById('reviewPayNote').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    bootstrap.Modal.getInstance(document.getElementById('reviewPayModal')).hide();
+    toast(decision === 'confirmed' ? 'Confirmed — organization upgraded and notified.' : 'Rejected — organization notified.', 'success');
+    loadPaymentRequests();
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+}
+
+// ---------------------------------------------------------------- MESSAGES
+async function loadMessageRecipients(){
+  if(!orgsCache.length) await loadOrganizations();
+  document.getElementById('orgRecipientList').innerHTML = orgsCache.map(o => `
+    <div class="form-check">
+      <input class="form-check-input msg-org-recipient" type="checkbox" value="${o.orgId}" id="msgorg-${o.orgId}">
+      <label class="form-check-label" for="msgorg-${o.orgId}" style="font-size:.85rem;">${o.orgName} <span class="text-muted">${o.ownerEmail}</span></label>
+    </div>`).join('') || '<div class="text-muted" style="font-size:.82rem;">No organizations yet.</div>';
+}
+document.getElementById('orgSelectAllLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.querySelectorAll('.msg-org-recipient').forEach(cb => cb.checked = true);
+});
+document.getElementById('pMsgSendBtn').addEventListener('click', async () => {
+  const resultEl = document.getElementById('pMsgResult');
+  const linksPanel = document.getElementById('pMsgLinksPanel');
+  resultEl.className = ''; resultEl.textContent = '';
+  linksPanel.style.display = 'none';
+
+  const body = document.getElementById('pMsgBody').value.trim();
+  if(!body){ resultEl.className='text-danger'; resultEl.textContent='Write a message first.'; return; }
+  const ids = Array.from(document.querySelectorAll('.msg-org-recipient:checked')).map(cb => cb.value);
+  if(!ids.length){ resultEl.className='text-danger'; resultEl.textContent='Select at least one organization.'; return; }
+  const channels = ['pchEmail','pchSms','pchWhatsapp'].filter(id => document.getElementById(id).checked).map(id => ({pchEmail:'email',pchSms:'sms',pchWhatsapp:'whatsapp'})[id]);
+  if(!channels.length){ resultEl.className='text-danger'; resultEl.textContent='Choose at least one channel.'; return; }
+
+  const recipients = orgsCache.filter(o => ids.includes(o.orgId)).map(o => ({ label: o.orgName, email: o.ownerEmail, phone: o.ownerPhone || '' }));
+  const btn = document.getElementById('pMsgSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const res = await apiCall('sendPlatformMessage', {
+      ...authFieldsSA(), audience: 'platform', recipients, channels,
+      subject: document.getElementById('pMsgSubject').value.trim(), body
+    });
+    if(!res.success){ resultEl.className='text-danger'; resultEl.textContent = res.error || 'Could not send.'; }
+    else{
+      resultEl.className = 'text-success';
+      resultEl.textContent = `Sent — ${res.emailsSent} email(s) delivered.`;
+      const allLinks = [...res.smsLinks.map(l => ({...l, kind:'SMS'})), ...res.whatsappLinks.map(l => ({...l, kind:'WhatsApp'}))];
+      if(allLinks.length){
+        linksPanel.style.display = 'block';
+        document.getElementById('pMsgLinksList').innerHTML = allLinks.map(l => `<div class="mb-1"><a href="${l.url}" target="_blank">${l.kind} → ${l.label} (${l.phone})</a></div>`).join('');
+      }
+    }
+  }catch(err){
+    resultEl.className='text-danger'; resultEl.textContent='Something went wrong. Please try again.';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="bi bi-send me-1"></i>Send';
+});
+
+// ---------------------------------------------------------------- SETTINGS PILL TABS
+document.querySelectorAll('.settings-pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.settings-pill-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.settings-pill-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelector(`.settings-pill-panel[data-pill-panel="${btn.dataset.pill}"]`).classList.add('active');
+  });
+});
+
+// ---------------------------------------------------------------- PLATFORM SETTINGS
+const PLAN_ROWS = [
+  { id:'starter_monthly',  label:'Starter — Monthly'  },
+  { id:'growth_monthly',   label:'Growth — Monthly'   },
+  { id:'starter_biannual', label:'Starter — Bi-Annual'},
+  { id:'growth_biannual',  label:'Growth — Bi-Annual' },
+  { id:'starter_yearly',   label:'Starter — Yearly'   },
+  { id:'growth_yearly',    label:'Growth — Yearly'    }
+];
+
+async function loadPlatformSettings(){
+  try{
+    const res = await apiCall('getPlatformConfigFull', authFieldsSA());
+    if(!res.success) return;
+
+    document.getElementById('cfgOwnerEmail').value = res.ownerEmail;
+    document.getElementById('cfgOwnerPhone').value = res.ownerPhone;
+    document.getElementById('cfgOwnerWebsite').value = res.ownerWebsite;
+    document.getElementById('cfgManualBankEnabled').checked = res.manualBankEnabled === 'true';
+    document.getElementById('cfgBankAccountNumber').value = res.bankAccountNumber;
+    document.getElementById('cfgBankName').value = res.bankName;
+    document.getElementById('cfgBankAccountName').value = res.bankAccountName;
+
+    document.getElementById('cfgBrandName').value = res.brandName || '';
+    document.getElementById('cfgSiteTagline').value = res.siteTagline || '';
+    document.getElementById('cfgThemePrimaryColor').value = res.themePrimaryColor || '#0a2420';
+    document.getElementById('cfgThemeAccentColor').value = res.themeAccentColor || '#d6a13d';
+    currentLogoDataUrl = res.logoDataUrl || '';
+
+    document.getElementById('cfgEmailFromName').value = res.emailFromName || '';
+    document.getElementById('cfgEmailReplyTo').value = res.emailReplyTo || '';
+
+    document.getElementById('cfgSmsEnabled').checked = res.smsEnabled === 'true';
+    document.getElementById('cfgSmsProvider').value = res.smsProvider || 'termii';
+    document.getElementById('cfgSmsApiKey').value = res.smsApiKey || '';
+    document.getElementById('cfgSmsSenderId').value = res.smsSenderId || '';
+
+    document.getElementById('cfgWhatsappEnabled').checked = res.whatsappEnabled === 'true';
+    document.getElementById('cfgWhatsappAccessToken').value = res.whatsappAccessToken || '';
+    document.getElementById('cfgWhatsappPhoneId').value = res.whatsappPhoneId || '';
+
+    document.getElementById('cfgPaystackEnabled').checked = res.paystackEnabled === 'true';
+    document.getElementById('cfgPaystackPublicKey').value = res.paystackPublicKey || '';
+    document.getElementById('cfgPaystackSecretKey').value = res.paystackSecretKey || '';
+    document.getElementById('cfgPaystackCurrency').value = res.paystackCurrency || 'NGN';
+
+    document.getElementById('cfgFlutterwaveEnabled').checked = res.flutterwaveEnabled === 'true';
+    document.getElementById('cfgFlutterwavePublicKey').value = res.flutterwavePublicKey || '';
+    document.getElementById('cfgFlutterwaveSecretKey').value = res.flutterwaveSecretKey || '';
+
+    document.getElementById('cfgRemitaEnabled').checked = res.remitaEnabled === 'true';
+    document.getElementById('cfgRemitaMerchantId').value = res.remitaMerchantId || '';
+    document.getElementById('cfgRemitaApiKey').value = res.remitaApiKey || '';
+    document.getElementById('cfgRemitaServiceTypeId').value = res.remitaServiceTypeId || '';
+
+    renderPlansList(res);
+  }catch(err){
+    toast('Could not load platform settings — check your connection.', 'error');
+  }
+}
+
+function renderPlansList(cfg){
+  document.getElementById('plansList').innerHTML = PLAN_ROWS.map(p => `
+    <div class="row g-2 align-items-center mb-2">
+      <div class="col-md-4" style="font-size:.85rem; font-weight:600;">${p.label}</div>
+      <div class="col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text">₦</span>
+          <input type="number" min="0" step="100" class="form-control" id="planPrice-${p.id}" value="${cfg['price_'+p.id] || ''}">
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="planActive-${p.id}" ${(cfg['planActive_'+p.id] !== 'false') ? 'checked' : ''}>
+          <label class="form-check-label" for="planActive-${p.id}" style="font-size:.82rem;">Visible on pricing.html</label>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('savePlansBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('plansMsg');
+  const payload = { ...authFieldsSA() };
+  PLAN_ROWS.forEach(p => {
+    payload['price_' + p.id] = document.getElementById('planPrice-' + p.id).value;
+    payload['planActive_' + p.id] = document.getElementById('planActive-' + p.id).checked ? 'true' : 'false';
+  });
+  try{
+    const res = await apiCall('updatePlatformConfig', payload);
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved — pricing.html reflects this on its next load.';
+    setTimeout(() => { msg.textContent=''; }, 3500);
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+});
+
+document.getElementById('contactForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('contactMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      ownerEmail: document.getElementById('cfgOwnerEmail').value.trim(),
+      ownerPhone: document.getElementById('cfgOwnerPhone').value.trim(),
+      ownerWebsite: document.getElementById('cfgOwnerWebsite').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+});
+document.getElementById('bankForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('bankMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      manualBankEnabled: document.getElementById('cfgManualBankEnabled').checked ? 'true' : 'false',
+      bankAccountNumber: document.getElementById('cfgBankAccountNumber').value.trim(),
+      bankName: document.getElementById('cfgBankName').value.trim(),
+      bankAccountName: document.getElementById('cfgBankAccountName').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+});
+
+// ---- Branding: name/tagline/colors always save; logo only changes if a new file was picked ----
+let currentLogoDataUrl = '';
+function resizeImageToDataUrl(file, maxDim){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => { img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png'));
+    }; img.onerror = reject; img.src = reader.result; };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById('brandingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('brandingMsg');
+  const payload = {
+    ...authFieldsSA(),
+    brandName: document.getElementById('cfgBrandName').value.trim(),
+    siteTagline: document.getElementById('cfgSiteTagline').value.trim(),
+    themePrimaryColor: document.getElementById('cfgThemePrimaryColor').value,
+    themeAccentColor: document.getElementById('cfgThemeAccentColor').value
+  };
+  const file = document.getElementById('cfgLogoFile').files[0];
+  if(file){
+    try{
+      payload.logoDataUrl = await resizeImageToDataUrl(file, 160); // small + square-ish keeps the sheet cell well under its size limit
+    }catch(err){
+      msg.className='text-danger'; msg.textContent='Could not read that image — try a different file.'; return;
+    }
+  }
+  try{
+    const res = await apiCall('updatePlatformConfig', payload);
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved — applies across the system on next page load.';
+    document.getElementById('cfgLogoFile').value = '';
+    setTimeout(() => { msg.textContent=''; }, 3500);
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+});
+document.getElementById('resetLogoBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('brandingMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', { ...authFieldsSA(), logoDataUrl: '' });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Custom logo removed — back to the default "O" mark.';
+    setTimeout(() => { msg.textContent=''; }, 3500);
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+});
+
+document.getElementById('emailCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('emailCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      emailFromName: document.getElementById('cfgEmailFromName').value.trim(),
+      emailReplyTo: document.getElementById('cfgEmailReplyTo').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+document.getElementById('smsCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('smsCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      smsEnabled: document.getElementById('cfgSmsEnabled').checked ? 'true' : 'false',
+      smsProvider: document.getElementById('cfgSmsProvider').value,
+      smsApiKey: document.getElementById('cfgSmsApiKey').value.trim(),
+      smsSenderId: document.getElementById('cfgSmsSenderId').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+document.getElementById('whatsappCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('whatsappCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      whatsappEnabled: document.getElementById('cfgWhatsappEnabled').checked ? 'true' : 'false',
+      whatsappAccessToken: document.getElementById('cfgWhatsappAccessToken').value.trim(),
+      whatsappPhoneId: document.getElementById('cfgWhatsappPhoneId').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+document.getElementById('paystackCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('paystackCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      paystackEnabled: document.getElementById('cfgPaystackEnabled').checked ? 'true' : 'false',
+      paystackPublicKey: document.getElementById('cfgPaystackPublicKey').value.trim(),
+      paystackSecretKey: document.getElementById('cfgPaystackSecretKey').value.trim(),
+      paystackCurrency: document.getElementById('cfgPaystackCurrency').value.trim() || 'NGN'
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+document.getElementById('flutterwaveCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('flutterwaveCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      flutterwaveEnabled: document.getElementById('cfgFlutterwaveEnabled').checked ? 'true' : 'false',
+      flutterwavePublicKey: document.getElementById('cfgFlutterwavePublicKey').value.trim(),
+      flutterwaveSecretKey: document.getElementById('cfgFlutterwaveSecretKey').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+document.getElementById('remitaCfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('remitaCfgMsg');
+  try{
+    const res = await apiCall('updatePlatformConfig', {
+      ...authFieldsSA(),
+      remitaEnabled: document.getElementById('cfgRemitaEnabled').checked ? 'true' : 'false',
+      remitaMerchantId: document.getElementById('cfgRemitaMerchantId').value.trim(),
+      remitaApiKey: document.getElementById('cfgRemitaApiKey').value.trim(),
+      remitaServiceTypeId: document.getElementById('cfgRemitaServiceTypeId').value.trim()
+    });
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not save.'; return; }
+    msg.className = 'text-success'; msg.textContent = 'Saved.';
+    setTimeout(() => { msg.textContent=''; }, 2500);
+  }catch(err){ msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.'; }
+});
+
+// ---------------------------------------------------------------- MY ACCOUNT
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const note = document.getElementById('cpNote');
+  const btn = document.getElementById('cpSubmitBtn');
+  const current = document.getElementById('cpCurrent').value;
+  const next = document.getElementById('cpNew').value;
+  const confirmVal = document.getElementById('cpConfirm').value;
+  note.className = ''; note.textContent = '';
+  if(next !== confirmVal){ note.className='text-danger'; note.textContent='New passwords do not match.'; return; }
+  if(!navigator.onLine){ note.className='text-danger'; note.textContent='Reconnect to the internet to change your password.'; return; }
+
+  btn.disabled = true;
+  try{
+    const oldPasswordHash = await sha256Hex(current);
+    const newPasswordHash = await sha256Hex(next);
+    const res = await apiCall('changePassword', {...authFieldsSA(), oldPasswordHash, newPasswordHash});
+    if(!res.success){ note.className='text-danger'; note.textContent = res.error || 'Could not change password.'; btn.disabled=false; return; }
+    session.passwordHash = newPasswordHash;
+    setSession(session);
+    document.getElementById('changePasswordForm').reset();
+    note.className = 'text-success'; note.textContent = 'Password updated.';
+  }catch(err){
+    note.className='text-danger'; note.textContent='Something went wrong. Please try again.';
+  }
+  btn.disabled = false;
+});
+
+// ---------------------------------------------------------------- INIT
+async function initApp(){
+  await loadOrganizations();
+  await loadPaymentRequests();
+  document.getElementById('loadScreen').classList.add('hide');
+}
+window.addEventListener('load', initApp);
+
+// ---------------------------------------------------------------- ADMIN MANUAL
+function manualPlatformContent(){
+  return `# OKV OMS — Super Admin Guide
+
+## What This Dashboard Is For
+This is the platform-wide control center — separate from any individual organization's
+own dashboard. From here you manage every tenant organization, review payments, watch
+storage capacity, and control what appears across the whole system.
+
+## Organizations
+- The Organizations table lists every org on the platform — search by name or email.
+- Click the pencil icon on any row to edit that org's plan, subscription status, or
+  contact details.
+- The Dashboard's "Expiring Soon" widget flags trials/subscriptions ending within 3 days
+  or already expired, so you can follow up before service is interrupted.
+
+## Storage & Capacity
+- Each organization has its own dedicated spreadsheet, capped at 10,000,000 cells by
+  Google Sheets itself. This page shows how full each one is, refreshed automatically
+  once a day (not on every page load).
+- Status flags: Healthy (under 70%), Monitor (70–84%), Action Needed (85%+ — you'll also
+  get an email alert, throttled to once every 7 days per organization).
+
+## Payment Requests
+- Manual bank-transfer submissions land here as "pending." Click Review to confirm or
+  reject — confirming applies the plan upgrade immediately and emails the organization.
+- Online (Paystack) payments are confirmed automatically and never need manual review.
+
+## Messages
+- Send a platform-wide announcement to one, several, or every organization at once — by
+  email, SMS, or WhatsApp (same channel rules as an org's own Messages page).
+
+## Platform Settings
+- Contact details (email, phone, website) and bank details shown across every page's
+  footer and the Subscription tab's manual-payment instructions.
+- Plan pricing (Starter/Growth, all billing cycles) — shown live on pricing.html.
+- Payment gateway keys (Paystack) and messaging provider keys (SMS/WhatsApp) — each
+  toggled on/off independently.
+
+## A Few Things Worth Knowing
+- You (the Super Admin) are the only account with orgId "PLATFORM" — every other login
+  belongs to a specific organization and never sees this dashboard.
+- Nothing here edits an organization's actual member/finance/event records — those live
+  entirely inside that organization's own spreadsheet and dashboard.
+`;
+}
+function renderManualView(){
+  const guides = [
+    { title:'Super Admin Guide', desc:'Everything covered on this platform dashboard.', content: manualPlatformContent(), file:'okv-oms-super-admin-guide.md' }
+  ];
+  document.getElementById('manualList').innerHTML = guides.map(g => `
+    <div class="col-md-4">
+      <div class="panel h-100">
+        <h6 style="font-weight:700;"><i class="bi bi-file-earmark-text me-1"></i>${g.title}</h6>
+        <p class="text-muted" style="font-size:.82rem;">${g.desc}</p>
+        <button class="btn btn-teal btn-sm" onclick='downloadManual(${JSON.stringify(g.content)}, "${g.file}")'><i class="bi bi-download me-1"></i>Download</button>
+      </div>
+    </div>`).join('');
+}
+function downloadManual(content, filename){
+  const blob = new Blob([content], {type:'text/markdown;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>

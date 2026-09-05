@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — OKV Organization Management System</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a2420">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OKV OMS">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{ --teal-950:#0a2420; --teal-800:#134a3d; --gold-500:#d6a13d; --gold-600:#b8862a; --ink:#1c2321; --ink-soft:#647069; --warn:#e2b93b; }
+*{box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif; color:var(--ink); margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%, #133c33 0%, var(--teal-950) 55%, #071915 100%);}
+h1{font-family:'Sora',sans-serif;}
+.card-box{background:#fff; border-radius:18px; max-width:420px; width:100%; padding:32px 28px; box-shadow:0 30px 70px rgba(0,0,0,.4);}
+.brand-mark{width:52px; height:52px; border-radius:14px; margin:0 auto 14px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600));
+  color:var(--teal-950); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:.95rem; letter-spacing:-.2px;}
+.card-box h1{font-size:1.2rem; font-weight:800; text-align:center; margin-bottom:4px;}
+.card-box p.sub{font-size:.83rem; color:var(--ink-soft); text-align:center; margin-bottom:22px;}
+.btn-teal{background:var(--teal-800); border-color:var(--teal-800); color:#fff;}
+.btn-teal:hover{background:#0e352e; border-color:#0e352e; color:#fff;}
+.form-label{font-size:.82rem; font-weight:600;}
+#msg{font-size:.83rem; margin-top:10px;}
+.offline-banner{display:none; background:var(--warn); color:#2a2005; font-size:.8rem; font-weight:600; text-align:center; padding:9px 12px; border-radius:8px; margin-bottom:16px;}
+.offline-banner.show{display:block;}
+.links-row{display:flex; justify-content:space-between; font-size:.8rem; margin-top:10px;}
+.install-hint{background:#f3efe6; border:1px dashed #e7e3d9; border-radius:10px; padding:12px 14px; font-size:.78rem; color:var(--ink-soft); margin-top:22px;}
+.install-hint a{font-weight:700;}
+#iosSteps{display:none; font-size:.76rem; padding-left:18px; margin:8px 0 0;}
+#forgotPanel{display:none;}
+</style>
+</head>
+<body>
+<div class="card-box">
+  <div class="brand-mark">OKV</div>
+  <h1>Log In</h1>
+  <p class="sub">OKV Organization Management System</p>
+
+  <div class="offline-banner" id="offlineBanner"><i class="bi bi-wifi-off me-1"></i>Reconnect to the internet to log in.</div>
+
+  <form id="loginForm">
+    <div class="mb-3">
+      <label class="form-label">Email / Username</label>
+      <input type="text" class="form-control" id="username" required autocomplete="username">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-teal w-100" id="loginBtn"><i class="bi bi-box-arrow-in-right me-1"></i>Log In</button>
+    <div id="msg"></div>
+    <div class="links-row">
+      <a href="#" id="forgotLink">Forgot password?</a>
+      <a href="pricing.html">Start a free trial</a>
+    </div>
+  </form>
+
+  <form id="forgotForm">
+    <p class="sub" style="margin-bottom:14px; text-align:left;">Enter your username/email and we'll send you a reset link.</p>
+    <div class="mb-3">
+      <label class="form-label">Email / Username</label>
+      <input type="text" class="form-control" id="forgotUsername" required>
+    </div>
+    <button type="submit" class="btn btn-teal w-100" id="forgotBtn"><i class="bi bi-envelope me-1"></i>Send Reset Link</button>
+    <div id="forgotMsg" style="font-size:.83rem; margin-top:10px;"></div>
+    <div class="links-row"><a href="#" id="backToLoginLink">← Back to log in</a><span></span></div>
+  </form>
+
+  <div class="install-hint" id="installHint">
+    <i class="bi bi-download me-1"></i>Haven't installed the app yet? <a href="install.html">Get installation instructions</a>.
+    <div id="iosNote" style="display:none; margin-top:6px;">
+      On iPhone/iPad: tap <strong>Share</strong> <i class="bi bi-box-arrow-up"></i> → <strong>Add to Home Screen</strong>.
+    </div>
+  </div>
+  <p class="text-center mt-3" style="font-size:.74rem; color:var(--ink-soft);">
+    Need help? <span data-live-setting="ownerEmail">technologyokv@gmail.com</span> · <span data-live-setting="ownerPhone">+2348104141138</span> · <span data-live-setting="ownerWebsite">www.okvtechnology.com</span>
+  </p>
+</div>
+<div style="text-align:center; margin-top:6px; font-size:.74rem; color:#9fc3b7;">
+  <a href="privacy.html" style="color:#9fc3b7; margin:0 6px;">Privacy Policy</a>·
+  <a href="terms.html" style="color:#9fc3b7; margin:0 6px;">Terms of Service</a>·
+  <a href="refund-policy.html" style="color:#9fc3b7; margin:0 6px;">Refund Policy</a>
+</div>
+
+
+<script src="shared.js"></script>
+<script>
+applyLivePlatformSettings();
+const loginPanel = document.getElementById('loginForm');
+const forgotPanel = document.getElementById('forgotForm');
+forgotPanel.style.display = 'none';
+
+document.getElementById('forgotLink').addEventListener('click', (e) => { e.preventDefault(); loginPanel.style.display='none'; forgotPanel.style.display='block'; });
+document.getElementById('backToLoginLink').addEventListener('click', (e) => { e.preventDefault(); forgotPanel.style.display='none'; loginPanel.style.display='block'; });
+
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+function isStandalone(){
+  return ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+}
+if(isIOS()) document.getElementById('iosNote').style.display = 'block';
+
+function updateOfflineBanner(){
+  const banner = document.getElementById('offlineBanner');
+  const online = navigator.onLine;
+  banner.classList.toggle('show', !online);
+  document.getElementById('loginBtn').disabled = !online;
+  document.getElementById('forgotBtn').disabled = !online;
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+updateOfflineBanner();
+
+// Already logged in with a valid cached session? Skip straight to the right dashboard —
+// app.html/super-admin.html each re-validate against the server as soon as they're online.
+const existing = getSession();
+if(existing && existing.userId) window.location.href = existing.isSuperAdmin ? 'super-admin.html' : 'app.html';
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('loginBtn');
+  msg.className = ''; msg.textContent = '';
+
+  if(!navigator.onLine){ msg.className='text-danger'; msg.textContent='Reconnect to the internet to log in.'; return; }
+
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try{
+    const passwordHash = await sha256Hex(password);
+    const res = await apiCall('login', { username, passwordHash });
+    if(!res.success){
+      msg.className = 'text-danger';
+      msg.innerHTML = (res.expired)
+        ? `${res.error} <a href="pricing.html" class="fw-bold">View plans</a>`
+        : (res.error || 'Login failed.');
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>Log In';
+      return;
+    }
+    setSession({
+      orgId: res.user.orgId, orgName: res.user.orgName, userId: res.user.id,
+      username: res.user.username, fullName: res.user.fullName, phone: res.user.phone,
+      roles: res.user.roles, isAdmin: res.user.isAdmin, isSuperAdmin: res.user.isSuperAdmin,
+      plan: res.user.plan, billingCycle: res.user.billingCycle,
+      subscriptionStatus: res.user.subscriptionStatus, trialEndsAt: res.user.trialEndsAt,
+      subscriptionStartedAt: res.user.subscriptionStartedAt, subscriptionExpiry: res.user.subscriptionExpiry,
+      passwordHash, loginAt: new Date().toISOString()
+    });
+    window.location.href = res.user.isSuperAdmin ? 'super-admin.html' : 'app.html';
+  }catch(err){
+    msg.className = 'text-danger';
+    msg.textContent = (err.message === 'OFFLINE') ? 'Reconnect to the internet to log in.' : 'Something went wrong. Please try again.';
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>Log In';
+  }
+});
+
+document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fmsg = document.getElementById('forgotMsg');
+  const btn = document.getElementById('forgotBtn');
+  fmsg.className = ''; fmsg.textContent = '';
+  if(!navigator.onLine){ fmsg.className='text-danger'; fmsg.textContent='Reconnect to the internet to request a reset link.'; return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    await apiCall('forgotPassword', { username: document.getElementById('forgotUsername').value.trim() });
+    fmsg.className = 'text-success';
+    fmsg.textContent = "If that account exists, we've emailed a reset link. Check your inbox.";
+  }catch(err){
+    fmsg.className = 'text-danger'; fmsg.textContent = 'Something went wrong. Please try again.';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="bi bi-envelope me-1"></i>Send Reset Link';
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>

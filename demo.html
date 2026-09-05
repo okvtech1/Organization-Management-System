@@ -1,0 +1,2849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Demo — OKV Organization Management System</title>
+<meta name="description" content="Explore a fully interactive OKV OMS dashboard with realistic sample data — members, finance, projects, events and more. No signup required.">
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="shared.js"></script>
+<!-- shared.js is loaded (but its network-calling functions are never reached in demo mode —
+     see demoGuard() below) purely so formatRemainingDuration(), sha256Hex(), authFields(),
+     etc. are defined; several handlers below reference them and would otherwise throw. -->
+
+<style>
+:root{
+  --teal-950:#0a2420;
+  --teal-900:#0e352e;
+  --teal-800:#134a3d;
+  --teal-700:#1a6350;
+  --teal-600:#227a63;
+  --gold-500:#d6a13d;
+  --gold-600:#b8862a;
+  --paper:#f7f6f2;
+  --card:#ffffff;
+  --ink:#1c2321;
+  --ink-soft:#647069;
+  --line:#e7e3d9;
+  --danger:#b5473a;
+  --ok:#2f7d5a;
+  --warn:#b8862a;
+  --shadow-sm:0 1px 2px rgba(15,25,20,.05), 0 1px 1px rgba(15,25,20,.03);
+  --shadow-md:0 4px 14px rgba(15,25,20,.06), 0 1px 3px rgba(15,25,20,.04);
+}
+*{box-sizing:border-box;}
+body{
+  font-family:'Inter', system-ui, sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4,.brand,.stat-num{font-family:'Sora', system-ui, sans-serif;}
+
+/* ---------- loading screen ---------- */
+#loadScreen{
+  position:fixed; inset:0; z-index:9999; background:var(--teal-950);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transition:opacity .45s ease, visibility .45s ease; color:#fff;
+}
+#loadScreen.hide{opacity:0; visibility:hidden; pointer-events:none;}
+#loadScreen .load-mark{
+  width:52px; height:52px; border-radius:14px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600));
+  display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700;
+  font-size:1.3rem; color:var(--teal-950); margin-bottom:18px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+#loadScreen .load-title{font-family:'Sora',sans-serif; font-weight:600; font-size:1.05rem; letter-spacing:.01em;}
+#loadScreen .load-sub{font-size:.78rem; color:#9fc3b7; margin-top:6px; letter-spacing:.03em;}
+#loadScreen .load-bar{width:180px; height:3px; border-radius:3px; background:rgba(255,255,255,.12); margin-top:22px; overflow:hidden;}
+#loadScreen .load-bar-fill{height:100%; width:30%; background:linear-gradient(90deg, var(--gold-600), var(--gold-500)); border-radius:3px; animation:loadslide 1.1s ease-in-out infinite;}
+@keyframes loadslide{
+  0%{transform:translateX(-100%);}
+  50%{transform:translateX(120%);}
+  100%{transform:translateX(320%);}
+}
+
+/* ---------- layout ---------- */
+#shell{display:flex; min-height:100vh;}
+#sidebar{
+  width:254px; flex-shrink:0; background:var(--teal-950); color:#dce9e4;
+  display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+#sidebar .brand{
+  padding:22px 20px 16px; font-size:1.12rem; font-weight:700; color:#fff;
+  border-bottom:1px solid rgba(255,255,255,.08); line-height:1.3; display:flex; gap:10px; align-items:flex-start;
+}
+#sidebar .brand-mark{
+  width:34px; height:34px; border-radius:9px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600));
+  color:var(--teal-950); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.95rem;
+  flex-shrink:0; margin-top:1px;
+}
+#sidebar .brand-text{min-width:0; overflow-wrap:break-word;}
+#sidebar .brand small{display:block; font-family:'Inter',sans-serif; font-weight:500; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-500); margin-top:3px;}
+.nav-group-label{font-size:.65rem; text-transform:uppercase; letter-spacing:.11em; color:#6f9689; font-weight:600; padding:18px 20px 7px;}
+.side-link{
+  display:flex; align-items:center; gap:11px; margin:1px 10px; padding:8px 10px; border-radius:8px; color:#c9ddd4; text-decoration:none;
+  font-size:.855rem; font-weight:500; cursor:pointer; transition:background .12s ease, color .12s ease;
+}
+.side-link i{width:18px; text-align:center; font-size:.92rem; opacity:.8;}
+.side-link:hover{background:rgba(255,255,255,.07); color:#fff;}
+.side-link.active{background:var(--gold-500); color:var(--teal-950); font-weight:600;}
+.side-link.active i{opacity:1;}
+
+#main{flex:1; min-width:0;}
+#topbar{
+  background:var(--card); border-bottom:1px solid var(--line); padding:15px 28px;
+  display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20; gap:14px;
+}
+#topbar > div:first-child{min-width:0;}
+#topbar h2{margin:0; font-size:1.28rem; font-weight:700; letter-spacing:-.01em; overflow-wrap:break-word;}
+#topbar .sub{color:var(--ink-soft); font-size:.8rem; margin-top:2px; overflow-wrap:break-word;}
+#topbar > div:last-child{min-width:0; max-width:340px;}
+#topbar > div:last-child > div{overflow-wrap:break-word;}
+
+#syncBar{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;
+  background:#f3efe6; border-bottom:1px solid var(--line); padding:8px 24px; font-size:.78rem;
+}
+.sync-left, .sync-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.sync-meta{color:var(--ink-soft); font-size:.76rem;}
+.sync-pill{display:inline-flex; align-items:center; gap:5px; font-size:.74rem; font-weight:700; padding:.25em .6em; border-radius:20px;}
+.sync-pill i{font-size:.5rem;}
+.sync-pill.online{background:#e3f3ea; color:#2f7d5a;}
+.sync-pill.offline{background:#fbe9e7; color:#b83a3a;}
+#syncNowBtn .bi-arrow-repeat{display:inline-block;}
+#syncNowBtn.spinning .bi-arrow-repeat{animation:spin .8s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
+.outbox-badge{background:var(--gold-500); color:#2a2005; font-size:.68rem; font-weight:800; border-radius:10px; padding:0 6px; margin-left:4px;}
+#toastHost{position:fixed; bottom:18px; right:18px; z-index:2000; display:flex; flex-direction:column; align-items:flex-end;}
+@keyframes toastIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+.content{padding:26px 28px 60px;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- cards / stats ---------- */
+/* ---------- cards / stats ---------- */
+.stat-card{
+  background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px;
+  height:100%; box-shadow:0 1px 3px rgba(15,40,33,.05); min-width:0; overflow:hidden;
+  transition:transform .16s ease, box-shadow .16s ease; position:relative;
+}
+.stat-card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(15,40,33,.10); border-color:#d8e4de; }
+.stat-icon{
+  width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  margin-bottom:11px; font-size:.95rem; flex-shrink:0;
+}
+.stat-icon.teal{ background:rgba(26,99,80,.11); color:var(--teal-700); }
+.stat-icon.gold{ background:rgba(214,161,61,.16); color:var(--gold-600); }
+.stat-label{font-size:.71rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); font-weight:600; overflow-wrap:break-word;}
+.stat-num{font-size:clamp(1.05rem, 4vw, 1.65rem); font-weight:700; color:var(--teal-900); margin:3px 0 2px; letter-spacing:-.01em; overflow-wrap:break-word; word-break:break-word; line-height:1.15;}
+.stat-sub{font-size:.76rem; color:var(--ink-soft); overflow-wrap:break-word;}
+.stat-sub .trend-up{color:var(--ok); font-weight:600;}
+.stat-sub .trend-down{color:var(--danger); font-weight:600;}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:19px 21px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,40,33,.05); min-width:0; overflow:hidden; transition:box-shadow .16s ease;}
+.panel:hover{box-shadow:0 4px 16px rgba(15,40,33,.07);}
+.panel h5{font-weight:700; font-size:.95rem; margin-bottom:14px; display:flex; align-items:center; gap:8px; font-family:'Sora',sans-serif;}
+.insight-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.insight-row > *:first-child{min-width:0; overflow-wrap:break-word;}
+.insight-row > *:last-child{flex-shrink:0; white-space:nowrap;}
+.panel h5 i{color:var(--gold-600);}
+
+/* ---------- tables ---------- */
+.table-toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+.table-toolbar .search-box{position:relative; flex:1; min-width:200px; max-width:320px;}
+.table-toolbar .search-box i{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ink-soft); font-size:.85rem;}
+.table-toolbar input.search-input{padding-left:32px; border-radius:8px; border:1px solid var(--line); font-size:.85rem;}
+.btn-teal{background:var(--teal-800); border-color:var(--teal-800); color:#fff;}
+.btn-teal:hover{background:var(--teal-900); border-color:var(--teal-900); color:#fff;}
+.btn-amber{background:var(--gold-500); border-color:var(--gold-500); color:#2a2005;}
+.btn-amber:hover{background:var(--gold-600); border-color:var(--gold-600); color:#2a2005;}
+table.data-table{width:100%; font-size:.83rem; border-collapse:separate; border-spacing:0;}
+table.data-table thead th{
+  background:#f3efe6; color:var(--ink-soft); font-weight:600; text-transform:uppercase; font-size:.68rem;
+  letter-spacing:.05em; padding:9px 12px; border-bottom:1px solid var(--line); white-space:nowrap; text-align:left;
+}
+table.data-table tbody td{padding:9px 12px; border-bottom:1px solid #f0ede4; vertical-align:middle;}
+table.data-table tbody tr:hover{background:#faf6ec;}
+.badge-status{font-weight:600; font-size:.71rem; padding:.32em .6em; border-radius:20px; white-space:nowrap; flex-shrink:0;}
+.badge-active,.badge-paid,.badge-completed,.badge-confirmed,.badge-present{background:#e3f3ea; color:var(--ok);}
+.badge-inactive,.badge-suspended,.badge-cancelled,.badge-absent,.badge-unpaid{background:#fbe9e6; color:var(--danger);}
+.badge-planning,.badge-upcoming,.badge-partial,.badge-pending,.badge-late,.badge-excused{background:#fdf1dc; color:var(--warn);}
+.row-actions button{border:none; background:none; color:var(--ink-soft); padding:2px 5px; font-size:.9rem;}
+.row-actions button:hover{color:var(--teal-800);}
+.row-actions .del:hover{color:var(--danger);}
+.empty-hint{text-align:center; color:var(--ink-soft); padding:26px; font-size:.85rem;}
+
+/* ---------- modal form ---------- */
+.modal-header{background:var(--teal-950); color:#fff; border-bottom:none;}
+.modal-header .btn-close{filter:invert(1);}
+.form-label{font-size:.8rem; font-weight:600; color:var(--ink-soft);}
+.form-control,.form-select{font-size:.87rem;}
+
+/* misc */
+code.fx{background:#eef2ef; color:var(--teal-900); padding:.12em .45em; border-radius:5px; font-size:.78em;}
+.build-note{font-size:.75rem; color:var(--ink-soft); background:#f3efe6; border:1px dashed var(--line); border-radius:8px; padding:10px 14px;}
+.pro-badge{display:inline-block; font-size:.58rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--teal-950); background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); border-radius:5px; padding:.15em .45em; margin-left:6px; vertical-align:middle;}
+.side-link .pro-badge{margin-left:auto;}
+.nav-tabs .nav-link{font-size:.85rem; font-weight:600; color:var(--ink-soft);}
+.nav-tabs .nav-link.active{color:var(--teal-900);}
+::-webkit-scrollbar{width:9px; height:9px;}
+::-webkit-scrollbar-thumb{background:#cfd8d3; border-radius:6px;}
+
+@media(max-width:991.98px){
+  #sidebar{position:fixed; left:-270px; top:0; z-index:1050; transition:left .22s ease; box-shadow:none;}
+  #sidebar.open{left:0; box-shadow:0 0 40px rgba(0,0,0,.35);}
+  #main{width:100%;}
+  #sidebarBackdrop{display:none; position:fixed; inset:0; background:rgba(10,20,17,.45); z-index:1040;}
+  #sidebarBackdrop.show{display:block;}
+}
+@media(min-width:992px){
+  #sidebarBackdrop{display:none !important;}
+}
+
+@media print{
+  #sidebar, #topbar, #syncBar, #toastHost, .table-toolbar, .row-actions, #periodTabs, .btn{display:none !important;}
+  .view{display:none !important;}
+  #view-reports{display:block !important;}
+  .content{padding:0;}
+  .panel{border:1px solid #ccc; break-inside:avoid;}
+  .print-letterhead{display:flex !important;}
+}
+.print-letterhead{ display:none; align-items:center; gap:14px; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--teal-700); }
+.print-letterhead img{ width:52px; height:52px; object-fit:contain; border-radius:8px; }
+.print-letterhead .ph-org{ font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; color:var(--teal-900); }
+.print-letterhead .ph-meta{ font-size:.78rem; color:var(--ink-soft); margin-top:2px; }
+
+/* ---------- phone refinement ---------- */
+@media(max-width:575.98px){
+  #topbar{padding:12px 16px;}
+  #topbar h2{font-size:1.05rem;}
+  #syncBar{padding:8px 16px;}
+  .content{padding:16px 14px 48px;}
+  .panel{padding:15px 16px; border-radius:10px;}
+  .stat-card{padding:14px 15px;}
+  .table-toolbar .search-box{max-width:none; flex-basis:100%;}
+  .modal-dialog{margin:.5rem;}
+  #toastHost{left:12px; right:12px; bottom:12px; align-items:stretch;}
+  #toastHost > div{max-width:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOADING SCREEN ============ -->
+<div id="loadScreen">
+  <div class="load-mark" id="loadMark">O</div>
+  <div class="load-title" id="loadTitle">My Organization</div>
+  <div class="load-sub">OKV Organization Management System</div>
+  <div class="load-bar"><div class="load-bar-fill"></div></div>
+</div>
+
+<div id="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-mark" id="brandMark">O</div>
+      <div class="brand-text">
+        <span id="brandOrgName">My Organization</span>
+        <small>OKV Organization Management System</small>
+      </div>
+    </div>
+
+    <div class="nav-group-label">Overview</div>
+    <a class="side-link" data-view="dashboard"><i class="bi bi-house-door"></i> Dashboard</a>
+
+    <div class="nav-group-label">People</div>
+    <a class="side-link" data-view="members"><i class="bi bi-people"></i> Members</a>
+    <a class="side-link" data-view="departments"><i class="bi bi-diagram-3"></i> Departments</a>
+    <a class="side-link" data-view="volunteers"><i class="bi bi-person-hearts"></i> Volunteers</a>
+    <a class="side-link" data-view="staff"><i class="bi bi-person-badge"></i> HR / Staff</a>
+
+    <div class="nav-group-label">Programs</div>
+    <a class="side-link" data-view="events"><i class="bi bi-calendar-event"></i> Events</a>
+    <a class="side-link" data-view="attendance"><i class="bi bi-check2-square"></i> Attendance</a>
+    <a class="side-link" data-view="projects"><i class="bi bi-kanban"></i> Projects</a>
+    <a class="side-link" data-view="outreach"><i class="bi bi-globe2"></i> Outreach Programs</a>
+
+    <div class="nav-group-label">Finance</div>
+    <a class="side-link" data-view="finance"><i class="bi bi-cash-coin"></i> Finance Ledger</a>
+    <a class="side-link" data-view="fees"><i class="bi bi-credit-card"></i> Membership Fees</a>
+    <a class="side-link" data-view="donors"><i class="bi bi-hand-thumbs-up"></i> Donors & Partners</a>
+    <a class="side-link" data-view="assets"><i class="bi bi-box-seam"></i> Assets</a>
+
+    <div class="nav-group-label">Insights</div>
+    <a class="side-link" data-view="reports" data-role="admin"><i class="bi bi-bar-chart-line"></i> Reports<span class="pro-badge">Pro</span></a>
+
+    <div class="nav-group-label">Communication</div>
+    <a class="side-link" data-view="messages"><i class="bi bi-send"></i> Messages</a>
+    <a class="side-link" data-view="manual"><i class="bi bi-book"></i> User Manual</a>
+
+    <div class="nav-group-label" data-role="admin">Administration</div>
+    <a class="side-link" data-view="team" data-role="admin"><i class="bi bi-people-fill"></i> Team &amp; Roles</a>
+
+    <div class="nav-group-label" data-role="admin">Billing</div>
+    <a class="side-link" data-view="subscription" data-role="admin"><i class="bi bi-credit-card-2-front"></i> Subscription<span id="subNavBadge" class="outbox-badge" style="display:none;"></span></a>
+
+    <div class="nav-group-label">System</div>
+    <a class="side-link" data-view="account"><i class="bi bi-person-circle"></i> My Account</a>
+    <a class="side-link" data-view="settings"><i class="bi bi-gear"></i> Settings</a>
+
+    <div style="margin-top:auto; padding:16px 20px; font-size:.68rem; color:#6f948a; border-top:1px solid rgba(255,255,255,.08);">
+      Developed by: <strong style="color:#cfe3dc;">OKV Technology Consults</strong>
+      <div style="margin-top:6px;"><a href="privacy.html" target="_blank" style="color:#6f948a;">Privacy Policy</a> · <a href="terms.html" target="_blank" style="color:#6f948a;">Terms</a> · <a href="refund-policy.html" target="_blank" style="color:#6f948a;">Refunds</a></div>
+    </div>
+  </aside>
+  <div id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+        <h2 id="topbarTitle">Dashboard</h2>
+        <div class="sub" id="topbarSub">Live overview of your organization</div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <button id="subWarningIcon" data-role="admin" onclick="goToSubscriptionTab()" title="Subscription status" style="display:none; position:relative; border:none; background:#fbe9e7; color:#b83a3a; width:38px; height:38px; border-radius:10px; font-size:1.05rem;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span id="subWarningDot" style="position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%; background:#b83a3a; border:2px solid #fff;"></span>
+        </button>
+        <div class="text-end d-none d-sm-block">
+          <div style="font-size:.78rem; color:var(--ink-soft);" id="topbarMeta">Financial Year: Jan – Dec · Currency: ₦ NGN</div>
+          <div style="font-size:.72rem; color:var(--ink-soft);" id="clockLine"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="syncBar">
+      <div class="sync-left">
+        <span id="syncStatusPill" class="sync-pill"><i class="bi bi-circle-fill"></i><span class="pill-text">Online</span></span>
+        <button class="btn btn-sm btn-outline-secondary" id="syncNowBtn" onclick="syncNow(true)">
+          <i class="bi bi-arrow-repeat"></i> Sync Now <span id="outboxCount" class="outbox-badge" style="display:none;"></span>
+        </button>
+        <span id="lastSyncLabel" class="sync-meta">Last synced: never</span>
+      </div>
+      <div class="sync-right">
+        <span class="sync-meta" id="orgNameLabel">–</span>
+        <span class="sync-meta">·</span>
+        <span class="sync-meta" id="sessionUserLabel">–</span>
+        <button class="btn btn-sm btn-outline-secondary" id="notifyBtn" onclick="enableSyncNotifications()" title="Get a notification when background sync finishes"><i class="bi bi-bell"></i></button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="logout()" title="Log out"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <div id="toastHost"></div>
+
+    <div class="content">
+
+      <!-- ========================================================= DASHBOARD -->
+      <section class="view active" id="view-dashboard">
+        <div class="panel" id="dashTrialBanner" data-role="admin" style="display:none; background:linear-gradient(120deg, var(--gold-500), var(--gold-600)); color:var(--teal-950); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800; font-size:.92rem;" id="dashTrialTitle">Free trial</div>
+            <div style="font-size:.8rem;" id="dashTrialSub">–</div>
+          </div>
+          <a href="pricing.html" target="_blank" rel="noopener" class="btn btn-sm" style="background:var(--teal-950); color:#fff; font-weight:700; white-space:nowrap;"><i class="bi bi-rocket-takeoff me-1"></i>Upgrade Now</a>
+        </div>
+
+        <div class="row g-3 mb-2">
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-people"></i></div><div class="stat-label">Total Members</div><div class="stat-num" id="kpiMembers">–</div><div class="stat-sub" id="kpiMembersSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-cash-stack"></i></div><div class="stat-label">Net Balance</div><div class="stat-num" id="kpiBalance">–</div><div class="stat-sub" id="kpiBalanceSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-kanban"></i></div><div class="stat-label">Active Projects</div><div class="stat-num" id="kpiProjects">–</div><div class="stat-sub" id="kpiProjectsSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-percent"></i></div><div class="stat-label">Fee Collection Rate</div><div class="stat-num" id="kpiFees">–</div><div class="stat-sub" id="kpiFeesSub">–</div></div></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-calendar-event"></i></div><div class="stat-label">Upcoming Events</div><div class="stat-num" id="kpiEvents">–</div><div class="stat-sub" id="kpiEventsSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-heart"></i></div><div class="stat-label">Active Volunteers</div><div class="stat-num" id="kpiVols">–</div><div class="stat-sub" id="kpiVolsSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon teal"><i class="bi bi-gift"></i></div><div class="stat-label">Total Donations</div><div class="stat-num" id="kpiDonations">–</div><div class="stat-sub" id="kpiDonationsSub">–</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card"><div class="stat-icon gold"><i class="bi bi-award"></i></div><div class="stat-label">Total Grants</div><div class="stat-num" id="kpiGrants">–</div><div class="stat-sub" id="kpiGrantsSub">–</div></div></div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <div class="panel">
+              <h5><i class="bi bi-calendar-event"></i> Upcoming Events</h5>
+              <div id="dashEvents"></div>
+            </div>
+            <div class="panel">
+              <h5><i class="bi bi-kanban"></i> Active Projects</h5>
+              <div id="dashProjects"></div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="panel">
+              <h5><i class="bi bi-pie-chart"></i> Income vs Expenses</h5>
+              <canvas id="chartFinance" height="180"></canvas>
+            </div>
+            <div class="panel">
+              <h5><i class="bi bi-bar-chart"></i> Members by Department</h5>
+              <canvas id="chartDept" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= GENERIC MODULE VIEWS (built by JS) -->
+      <section class="view" id="view-members"><div id="mount-members"></div></section>
+      <section class="view" id="view-departments"><div id="mount-departments"></div></section>
+      <section class="view" id="view-volunteers"><div id="mount-volunteers"></div></section>
+      <section class="view" id="view-staff"><div id="mount-staff"></div></section>
+      <section class="view" id="view-events"><div id="mount-events"></div></section>
+      <section class="view" id="view-attendance"><div id="mount-attendance"></div></section>
+      <section class="view" id="view-projects"><div id="mount-projects"></div></section>
+      <section class="view" id="view-outreach"><div id="mount-outreach"></div></section>
+      <section class="view" id="view-finance"><div id="mount-finance"></div></section>
+      <section class="view" id="view-fees"><div id="mount-fees"></div></section>
+      <section class="view" id="view-donors"><div id="mount-donors"></div></section>
+      <section class="view" id="view-assets"><div id="mount-assets"></div></section>
+
+      <!-- ========================================================= REPORTS -->
+      <section class="view" id="view-reports">
+
+        <div class="print-letterhead" id="printLetterhead">
+          <img id="printLogo" style="display:none;">
+          <div>
+            <div class="ph-org" id="printOrgName">My Organization</div>
+            <div class="ph-meta" id="printMeta"></div>
+          </div>
+        </div>
+
+        <div class="panel d-flex flex-wrap align-items-center gap-2 mb-3" style="padding:12px 16px;">
+          <div class="btn-group" role="group" id="periodTabs">
+            <button class="btn btn-sm btn-outline-secondary period-btn" data-period="today">Today</button>
+            <button class="btn btn-sm btn-outline-secondary period-btn" data-period="week">This Week</button>
+            <button class="btn btn-sm btn-outline-secondary period-btn" data-period="month">This Month</button>
+            <button class="btn btn-sm btn-outline-secondary period-btn" data-period="quarter">This Quarter</button>
+            <button class="btn btn-sm btn-outline-secondary period-btn" data-period="year">This Year</button>
+            <button class="btn btn-sm btn-outline-secondary period-btn active" data-period="all">All Time</button>
+          </div>
+          <span class="text-muted" style="font-size:.78rem;" id="periodRangeLabel"></span>
+          <div class="ms-auto d-flex gap-2" data-role="admin">
+            <button class="btn btn-sm btn-outline-secondary" onclick="printReport()"><i class="bi bi-printer me-1"></i>Print / Save PDF</button>
+            <button class="btn btn-teal btn-sm" onclick="downloadReportCSV()"><i class="bi bi-download me-1"></i>Download CSV</button>
+          </div>
+        </div>
+
+        <!-- headline KPIs for the selected period -->
+        <div class="row g-3 mb-1" id="repHeadlineRow"></div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-people"></i> Membership Insights</h5>
+              <table class="table table-sm mb-3" id="repMembership"></table>
+              <canvas id="chartRepMembers" height="150"></canvas>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-cash-coin"></i> Financial Insights</h5>
+              <table class="table table-sm mb-3" id="repFinance"></table>
+              <canvas id="chartRepFinanceCat" height="150"></canvas>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-kanban"></i> Project & Budget Insights</h5>
+              <table class="table table-sm mb-2" id="repProjects"></table>
+              <div style="font-size:.76rem; font-weight:600; color:var(--ink-soft); margin-bottom:4px;">At-risk projects (&gt;80% spent, not complete)</div>
+              <div id="repAtRisk"></div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-person-hearts"></i> Volunteers & Outreach Insights</h5>
+              <table class="table table-sm" id="repOutreach"></table>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-person-badge"></i> HR & Payroll Insights</h5>
+              <table class="table table-sm" id="repHR"></table>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-hand-thumbs-up"></i> Fundraising & Donors Insights</h5>
+              <table class="table table-sm mb-2" id="repDonors"></table>
+              <div style="font-size:.76rem; font-weight:600; color:var(--ink-soft); margin-bottom:4px;">Top donors</div>
+              <div id="repTopDonors"></div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-calendar-check"></i> Events & Attendance Insights</h5>
+              <table class="table table-sm" id="repEvents"></table>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="panel">
+              <h5><i class="bi bi-box-seam"></i> Assets Insights</h5>
+              <table class="table table-sm" id="repAssets"></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="panel">
+          <h5><i class="bi bi-building"></i> Organization Information</h5>
+          <p class="text-muted" style="font-size:.8rem; margin-top:-8px;">Changes here apply instantly across the sidebar, header, currency figures, and reports.</p>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Organization Logo</label>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div id="logoPreviewWrap" style="width:56px; height:56px; border-radius:12px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; background:#fff; flex-shrink:0;">
+                  <img id="logoPreview" style="width:100%; height:100%; object-fit:contain; display:none;">
+                  <span id="logoPreviewFallback" style="font-weight:700; color:var(--teal-700);">O</span>
+                </div>
+                <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer;">
+                  <i class="bi bi-upload me-1"></i>Upload Logo
+                  <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none;" id="logoFileInput" onchange="handleLogoUpload(event)">
+                </label>
+                <button class="btn btn-outline-secondary btn-sm" id="removeLogoBtn" style="display:none;" onclick="removeLogo()"><i class="bi bi-trash me-1"></i>Remove</button>
+                <span class="text-muted" style="font-size:.76rem;">PNG, JPG, SVG or WEBP — shown in the sidebar, on printed reports, and in outgoing messages.</span>
+              </div>
+            </div>
+            <div class="col-md-4"><label class="form-label">Organization Name</label><input class="form-control" id="setOrgName" value="My Organization"></div>
+            <div class="col-md-4"><label class="form-label">Organization Type</label><input class="form-control" id="setOrgType" value="NGO / Foundation"></div>
+            <div class="col-md-4"><label class="form-label">Registration No.</label><input class="form-control" id="setOrgReg" value="REG-2020-00123"></div>
+            <div class="col-md-3"><label class="form-label">Currency Symbol</label><input class="form-control" id="setCcySymbol" value="₦"></div>
+            <div class="col-md-5"><label class="form-label">Currency Name</label><input class="form-control" id="setCcyName" value="NGN — Nigerian Naira"></div>
+            <div class="col-md-4"><label class="form-label">Financial Year</label><input class="form-control" id="setOrgFY" value="January – December"></div>
+            <div class="col-md-4"><label class="form-label">Date Format</label><input class="form-control" id="setOrgDF" value="DD-MMM-YYYY"></div>
+          </div>
+          <button class="btn btn-teal btn-sm mt-3" onclick="applySettings()"><i class="bi bi-save me-1"></i>Save Settings</button>
+          <span class="text-muted ms-2" style="font-size:.78rem;" id="settingsSavedNote"></span>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-list-check"></i> Picklists (drive every dropdown in this system)</h5>
+          <div class="row" id="picklistRow"></div>
+        </div>
+        <div class="panel" data-role="admin">
+          <h5><i class="bi bi-shield-check"></i> Backup &amp; Restore<span class="pro-badge">Pro</span></h5>
+          <p class="text-muted" style="font-size:.8rem; margin-top:-8px;">Everything lives on this device only. Download a backup regularly, or restore from one — no internet needed.</p>
+          <div class="callout" style="background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:.78rem; margin-bottom:12px;">
+            <b>Which format should I use?</b><br>
+            <b>JSON</b> — one file, everything included (all 12 modules + your settings). This is the one to restore from — use it for real backups.<br>
+            <b>CSV</b> — one spreadsheet-friendly file per module (Members.csv, Finance.csv, etc.), for opening in Excel/Sheets or importing elsewhere. Restore doesn't work from CSV — it's for viewing/editing outside the app, not backup-and-restore.
+          </div>
+          <button class="btn btn-teal btn-sm" onclick="downloadBackup()"><i class="bi bi-download me-1"></i>Download Backup (.json)</button>
+          <button class="btn btn-outline-secondary btn-sm ms-2" onclick="downloadBackupCSV()"><i class="bi bi-filetype-csv me-1"></i>Download All Modules (.csv)</button>
+          <label class="btn btn-outline-secondary btn-sm ms-2 mb-0" style="cursor:pointer;">
+            <i class="bi bi-upload me-1"></i>Restore from Backup (.json)
+            <input type="file" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
+          </label>
+          <div class="text-muted mt-2" style="font-size:.78rem;" id="backupNote"></div>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-phone"></i> App Info</h5>
+          <table class="table table-sm mb-0">
+            <tr><td>Organization</td><td class="text-end" id="appInfoOrgName">–</td></tr>
+            <tr><td>Logged in as</td><td class="text-end" id="appInfoUsername">–</td></tr>
+            <tr><td>Role(s)</td><td class="text-end" id="roleLabel">–</td></tr>
+            <tr><td>Storage</td><td class="text-end">Synced online — cached locally for offline use</td></tr>
+            <tr><td>Records stored</td><td class="text-end" id="recordCountLabel">–</td></tr>
+          </table>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-headset"></i> Contact OKV Technology Consults</h5>
+          <table class="table table-sm mb-0">
+            <tr><td>Email</td><td class="text-end">technologyokv@gmail.com</td></tr>
+            <tr><td>Phone</td><td class="text-end">+2348104141138</td></tr>
+            <tr><td>Website</td><td class="text-end"><a href="https://www.okvtechnology.com" target="_blank" rel="noopener">www.okvtechnology.com</a></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================================================= TEAM & ROLES (admin only) -->
+      <section class="view" id="view-team">
+        <div class="panel">
+          <div class="table-toolbar">
+            <p class="text-muted mb-0" style="font-size:.82rem;">Create accounts for your staff, assign their roles, and control access — all scoped to your organization only.</p>
+            <button class="btn btn-amber btn-sm ms-auto" onclick="openAddUserModal()"><i class="bi bi-person-plus me-1"></i>Add User</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadTeam()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead><tr><th>Username / Email</th><th>Roles</th><th>Status</th><th>Subscription</th><th>Actions</th></tr></thead>
+              <tbody id="tbody-team"></tbody>
+            </table>
+          </div>
+          <div class="empty-hint" id="empty-team" style="display:none;">No team members yet — click "Add User" to create your first one.</div>
+          <div class="build-note mt-2" id="teamOfflineNote" style="display:none;">Team management requires an internet connection — reconnect to view or edit your team.</div>
+        </div>
+      </section>
+
+      <!-- ========================================================= SUBSCRIPTION (admin only) -->
+      <section class="view" id="view-subscription">
+        <div class="panel" id="subStatusPanel">
+          <h5><i class="bi bi-credit-card-2-front"></i> Your Plan</h5>
+          <table class="table table-sm mb-0">
+            <tr><td>Plan</td><td class="text-end" id="subPlanLabel">–</td></tr>
+            <tr><td>Billing Cycle</td><td class="text-end" id="subCycleLabel">–</td></tr>
+            <tr><td>Status</td><td class="text-end" id="subStatusLabel">–</td></tr>
+            <tr><td>Start Date</td><td class="text-end" id="subStartLabel">–</td></tr>
+            <tr><td id="subExpiryRowLabel">Trial Ends</td><td class="text-end" id="subExpiryLabel">–</td></tr>
+          </table>
+        </div>
+
+        <div class="panel" id="subCountdownPanel">
+          <h5><i class="bi bi-hourglass-split"></i> <span id="subCountdownTitle">Trial Countdown</span></h5>
+          <div id="subCountdownBig" style="font-family:'Sora',sans-serif; font-weight:800; font-size:2.1rem; color:var(--teal-900);">–</div>
+          <div class="text-muted" id="subCountdownSub" style="font-size:.83rem; margin-bottom:16px;"></div>
+          <a href="pricing.html" id="subUpgradeBtn" class="btn btn-amber btn-sm" target="_blank" rel="noopener"><i class="bi bi-rocket-takeoff me-1"></i>Upgrade / Renew Plan</a>
+        </div>
+
+        <div class="panel">
+          <h5><i class="bi bi-info-circle"></i> How to Renew</h5>
+          <p class="text-muted" style="font-size:.85rem;">OKV Organization Management System offers three billing cycles — choose whichever suits your organization:</p>
+          <ul style="font-size:.85rem; color:var(--ink);">
+            <li><strong>Monthly</strong> — billed every month, cancel any time.</li>
+            <li><strong>Bi-Annual</strong> — billed every 6 months, saves 10% versus monthly.</li>
+            <li><strong>Yearly</strong> — billed once a year, saves 20% versus monthly.</li>
+          </ul>
+          <p class="text-muted" style="font-size:.85rem; margin-bottom:0;">Click <strong>Upgrade / Renew Plan</strong> above to review plans and pricing, or contact us any time for help choosing the right one. Your team keeps using the app right up until your access expires.</p>
+        </div>
+
+        <div class="panel">
+          <h5><i class="bi bi-bank"></i> Submit Payment for Upgrade / Renewal</h5>
+          <div class="build-note" style="margin-bottom:16px;">
+            <strong>How this works:</strong> Transfer the amount for your chosen plan to the account below, then fill out this form and upload a screenshot of the transfer. We review submissions and confirm by email — usually within an hour. Once confirmed, your plan updates automatically and your dashboard will show the new start and due dates.
+          </div>
+          <div class="row g-2 mb-3" style="font-size:.85rem;">
+            <div class="col-sm-4"><strong>Account Number</strong><div>8104141138</div></div>
+            <div class="col-sm-4"><strong>Bank</strong><div>OPAY MFB</div></div>
+            <div class="col-sm-4"><strong>Account Name</strong><div>Olasile Kehinde Victor</div></div>
+          </div>
+          <div class="row g-2 mb-3" style="font-size:.83rem; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:12px;">
+            <div class="col-sm-4"><i class="bi bi-envelope me-1"></i>technologyokv@gmail.com</div>
+            <div class="col-sm-4"><i class="bi bi-telephone me-1"></i>+2348104141138</div>
+            <div class="col-sm-4"><i class="bi bi-globe me-1"></i>www.okvtechnology.com</div>
+          </div>
+          <form id="paymentForm" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Organization Name</label>
+              <input type="text" class="form-control" id="payOrgName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contact Email</label>
+              <input type="email" class="form-control" id="payEmail" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contact Phone</label>
+              <input type="tel" class="form-control" id="payPhone">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Plan / Tier</label>
+              <select class="form-select" id="payPlan" required>
+                <option value="">Select a plan…</option>
+                <option value="starter_monthly">Starter — Monthly</option>
+                <option value="growth_monthly">Growth — Monthly</option>
+                <option value="starter_biannual">Starter — Bi-Annual</option>
+                <option value="growth_biannual">Growth — Bi-Annual</option>
+                <option value="starter_yearly">Starter — Yearly</option>
+                <option value="growth_yearly">Growth — Yearly</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Upload Payment Screenshot</label>
+              <input type="file" class="form-control" id="payScreenshot" accept="image/*">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-teal" id="paySubmitBtn"><i class="bi bi-send-check me-1"></i>Submit</button>
+              <span id="payMsg" style="font-size:.83rem; margin-left:10px;"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ========================================================= MESSAGES (everyone) -->
+      <section class="view" id="view-messages">
+        <div class="panel">
+          <h5><i class="bi bi-send"></i> Send a Message</h5>
+          <p class="text-muted" style="font-size:.83rem;">Reach members individually or all at once, message a teammate, or send yourself a note — over email, SMS, or WhatsApp.</p>
+
+          <div class="mb-3">
+            <label class="form-label">Send To</label>
+            <div class="btn-group d-flex flex-wrap" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-sm msg-audience-btn active" data-audience="members">Members</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm msg-audience-btn" data-audience="team">My Team</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm msg-audience-btn" data-audience="self">Myself</button>
+            </div>
+          </div>
+
+          <div class="mb-3" id="msgRecipientBlock">
+            <label class="form-label d-flex justify-content-between">
+              <span>Recipients</span>
+              <a href="#" id="msgSelectAllLink" style="font-size:.78rem;">Select All</a>
+            </label>
+            <div id="msgRecipientList" style="max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:10px;"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Channel(s)</label>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check"><input class="form-check-input" type="checkbox" value="email" id="chEmail" checked><label class="form-check-label" for="chEmail">Email</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" value="sms" id="chSms"><label class="form-check-label" for="chSms">SMS</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" value="whatsapp" id="chWhatsapp"><label class="form-check-label" for="chWhatsapp">WhatsApp</label></div>
+            </div>
+            <div class="build-note mt-2" style="font-size:.76rem;">Email sends immediately. SMS and WhatsApp don't have a paid gateway connected yet, so instead you'll get a tap-to-send link per recipient right after sending.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Subject <span class="text-muted" style="font-weight:400;">(email only)</span></label>
+            <input type="text" class="form-control" id="msgSubject">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" id="msgBody" rows="4" required></textarea>
+          </div>
+
+          <button class="btn btn-teal" id="msgSendBtn"><i class="bi bi-send me-1"></i>Send</button>
+          <span id="msgResult" style="font-size:.83rem; margin-left:10px;"></span>
+
+          <div id="msgLinksPanel" style="display:none; margin-top:18px;">
+            <h6 style="font-size:.85rem; font-weight:700;">Tap to send (SMS / WhatsApp)</h6>
+            <div id="msgLinksList" style="font-size:.85rem;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= USER MANUAL (everyone) -->
+      <section class="view" id="view-manual">
+        <div class="panel">
+          <h5><i class="bi bi-book"></i> Guides for Your Account</h5>
+          <p class="text-muted" style="font-size:.83rem;">Available guides are based on your plan and role — download any of these any time.</p>
+          <div id="manualList" class="row g-3"></div>
+        </div>
+      </section>
+
+      <!-- ========================================================= MY ACCOUNT (everyone) -->
+      <section class="view" id="view-account">
+        <div class="panel">
+          <h5><i class="bi bi-person-circle"></i> My Account</h5>
+          <table class="table table-sm mb-0">
+            <tr><td>Organization</td><td class="text-end" id="acctOrgName">–</td></tr>
+            <tr><td>Username / Email</td><td class="text-end" id="acctUsername">–</td></tr>
+            <tr><td>Role(s)</td><td class="text-end" id="acctRoles">–</td></tr>
+            <tr><td>Account Type</td><td class="text-end" id="acctType">–</td></tr>
+          </table>
+        </div>
+        <div class="panel">
+          <h5><i class="bi bi-shield-lock"></i> Change Password</h5>
+          <p class="text-muted" style="font-size:.8rem; margin-top:-8px;">Requires an internet connection. You'll stay logged in — no need to sign in again.</p>
+          <form id="changePasswordForm" class="row g-3" style="max-width:420px;">
+            <div class="col-12"><label class="form-label">Current Password</label><input type="password" class="form-control" id="cpCurrent" required autocomplete="current-password"></div>
+            <div class="col-12"><label class="form-label">New Password</label><input type="password" class="form-control" id="cpNew" required minlength="8" autocomplete="new-password"></div>
+            <div class="col-12"><label class="form-label">Confirm New Password</label><input type="password" class="form-control" id="cpConfirm" required minlength="8" autocomplete="new-password"></div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-teal btn-sm" id="cpSubmitBtn"><i class="bi bi-save me-1"></i>Update Password</button>
+              <span class="text-muted ms-2" style="font-size:.78rem;" id="cpNote"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHARED RECORD MODAL ============ -->
+<div class="modal fade" id="recordModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="recordModalTitle">Add record</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3" id="recordFormBody"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-teal btn-sm" id="recordSaveBtn"><i class="bi bi-check2 me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ IMPORT FORMAT GUIDE MODAL ============ -->
+<div class="modal fade" id="formatModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="formatModalTitle">Import Format</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="formatModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADD USER MODAL ============ -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Team Member</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3"><label class="form-label">Username / Email</label><input type="text" class="form-control" id="newUserUsername" autocomplete="off"></div>
+        <div class="mb-3"><label class="form-label">Temporary Password</label><input type="password" class="form-control" id="newUserPassword" minlength="8" autocomplete="new-password"></div>
+        <label class="form-label">Roles</label>
+        <div id="newUserRoles" class="mb-2"></div>
+        <div id="addUserMsg" style="font-size:.83rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-teal btn-sm" id="addUserSaveBtn" onclick="submitAddUser()"><i class="bi bi-person-plus me-1"></i>Create User</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EDIT ROLES MODAL ============ -->
+<div class="modal fade" id="editRolesModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Roles — <span id="editRolesUsername"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.8rem;">Check the roles that apply. You can add or remove any of these at any time.</p>
+        <div id="editRolesList"></div>
+        <div id="editRolesMsg" style="font-size:.83rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-teal btn-sm" onclick="saveUserRoles()"><i class="bi bi-save me-1"></i>Save Roles</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SET USER PASSWORD MODAL ============ -->
+<div class="modal fade" id="setPasswordModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Set Password — <span id="setPasswordUsername"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size:.8rem;">This immediately overwrites their password. No email is sent — let them know the new password directly.</p>
+        <div class="mb-3"><label class="form-label">New Password</label><input type="password" class="form-control" id="setPasswordValue" minlength="8" autocomplete="new-password"></div>
+        <div id="setPasswordMsg" style="font-size:.83rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-teal btn-sm" onclick="saveUserPassword()"><i class="bi bi-shield-lock me-1"></i>Set Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script>
+/* =====================================================================================
+   ORGANIZATION MANAGEMENT SYSTEM
+   ---------------------------------------------------------------------------------
+   Every read/write below runs against an in-memory `DB` object so you can click
+   through the whole app right now. Each function that touches DB is written to
+   mirror how each module's records are loaded and saved, so every add,
+   edit, delete, and calculation below is fully wired and functional.
+===================================================================================== */
+
+// ---------------------------------------------------------------- ORGANIZATION CONFIG
+// Everything under Settings → Organization Information reads/writes this object.
+// applySettings() re-renders every part of the system that displays these values.
+const CONFIG = {
+  orgName:'My Organization',
+  orgType:'NGO / Foundation',
+  orgReg:'REG-2020-00123',
+  ccySymbol:'₦',
+  ccyName:'NGN — Nigerian Naira',
+  financialYear:'January – December',
+  dateFormat:'DD-MMM-YYYY',
+};
+let CCY = CONFIG.ccySymbol;
+
+// ---------------------------------------------------------------- DEMO SESSION
+// No login, no server, no persistence — this is a fixed, fake session so the exact
+// same UI/logic as the real app renders with sample data. DEMO_MODE guards every
+// mutating action (see demoGuard() below) so nothing here can actually be changed.
+const DEMO_MODE = true;
+// ---------------------------------------------------------------- CHART.JS MODERN DEFAULTS
+if(typeof Chart !== 'undefined'){
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size = 11.5;
+  Chart.defaults.color = '#647069';
+  Chart.defaults.plugins.tooltip.backgroundColor = '#0e352e';
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.plugins.tooltip.titleFont = { weight: '600' };
+  Chart.defaults.elements.bar.borderRadius = 6;
+  Chart.defaults.elements.line.tension = 0.35;
+}
+
+let session = {
+  orgId: 'demo', orgName: 'Riverside Community Foundation', userId: 'demo-admin',
+  username: 'demo@okvdemo.test', fullName: 'Demo Admin', phone: '+2348000000000',
+  roles: ['Organization Super Admin'], isAdmin: true,
+  plan: 'Starter — Monthly', billingCycle: 'monthly',
+  subscriptionStatus: 'trialing', trialEndsAt: new Date(Date.now() + 5*86400000).toISOString(),
+  subscriptionStartedAt: new Date(Date.now() - 2*86400000).toISOString(), subscriptionExpiry: ''
+};
+
+/** Call at the top of any mutating handler — shows a toast and stops the action. */
+function demoGuard(){
+  toast('This is a live demo — sign up free to make real changes.', 'info');
+  return true;
+}
+
+function isAdminUser(){ return !!(session && session.isAdmin); }
+
+function applyAccessUI(){
+  document.querySelectorAll('[data-role="admin"]').forEach(el => {
+    el.style.display = isAdminUser() ? '' : 'none';
+  });
+  const roleText = (session.roles && session.roles.length) ? session.roles.join(', ') : (isAdminUser() ? 'Organization Super Admin' : 'User');
+  const roleLabel = document.getElementById('roleLabel');
+  if(roleLabel) roleLabel.textContent = roleText;
+  const orgLabel = document.getElementById('orgNameLabel');
+  if(orgLabel) orgLabel.textContent = session.orgName || '—';
+  const userLabel = document.getElementById('sessionUserLabel');
+  if(userLabel) userLabel.textContent = session.username || '';
+  const appInfoOrg = document.getElementById('appInfoOrgName');
+  if(appInfoOrg) appInfoOrg.textContent = session.orgName || '—';
+  const appInfoUser = document.getElementById('appInfoUsername');
+  if(appInfoUser) appInfoUser.textContent = session.username || '';
+}
+
+function populateAccountView(){
+  document.getElementById('acctOrgName').textContent = session.orgName || '—';
+  document.getElementById('acctUsername').textContent = session.username || '—';
+  document.getElementById('acctRoles').textContent = (session.roles && session.roles.length) ? session.roles.join(', ') : '—';
+  document.getElementById('acctType').textContent = isAdminUser() ? 'Admin' : 'User';
+}
+
+function logout(){
+  window.location.href = 'index.html';
+}
+
+// =====================================================================================
+// SUBSCRIPTION — trial countdown, plan display, and upgrade prompts. All computed
+// client-side from the subscription fields cached in session at login; the server is
+// still the source of truth and blocks access itself once actually expired (see
+// syncNow()'s auto-logout and Code.gs's isAccessExpired()).
+// =====================================================================================
+const CYCLE_LABELS = { monthly:'Monthly', biannual:'Bi-Annual', yearly:'Yearly' };
+
+function getSubscriptionInfo(){
+  const trialing = session.subscriptionStatus === 'trialing';
+  const expiryStr = trialing ? session.trialEndsAt : session.subscriptionExpiry;
+  if(!expiryStr) return { trialing, hasExpiry:false, daysRemaining:null, expired:false };
+  const msRemaining = new Date(expiryStr).getTime() - Date.now();
+  const daysRemaining = Math.ceil(msRemaining / 86400000);
+  return { trialing, hasExpiry:true, expiryStr, daysRemaining, expired: msRemaining <= 0 };
+}
+
+function updateSubscriptionBadges(){
+  if(!isAdminUser()) return; // billing is an Admin-only concern
+  const info = getSubscriptionInfo();
+  const warnIcon = document.getElementById('subWarningIcon');
+  const navBadge = document.getElementById('subNavBadge');
+  const trialBanner = document.getElementById('dashTrialBanner');
+
+  const showWarning = info.hasExpiry && (info.expired || info.daysRemaining <= 3);
+  if(warnIcon) warnIcon.style.display = showWarning ? 'inline-flex' : 'none';
+  if(navBadge){
+    navBadge.style.display = showWarning ? 'inline-block' : 'none';
+    navBadge.textContent = info.expired ? '!' : info.daysRemaining;
+  }
+
+  if(trialBanner){
+    if(info.trialing && info.hasExpiry){
+      trialBanner.style.display = 'flex';
+      document.getElementById('dashTrialTitle').textContent = info.expired ? 'Your free trial has ended' : 'Free trial active';
+      document.getElementById('dashTrialSub').textContent = info.expired
+        ? 'Choose a plan to keep your team working without interruption.'
+        : `${info.daysRemaining} day${info.daysRemaining===1?'':'s'} remaining — upgrade any time to keep everything running smoothly.`;
+    } else if(info.hasExpiry && info.daysRemaining <= 7){
+      trialBanner.style.display = 'flex';
+      document.getElementById('dashTrialTitle').textContent = info.expired ? 'Your subscription has expired' : 'Subscription renewal due soon';
+      document.getElementById('dashTrialSub').textContent = info.expired
+        ? 'Renew now to restore full access for your team.'
+        : `${info.daysRemaining} day${info.daysRemaining===1?'':'s'} left before renewal is due.`;
+    } else {
+      trialBanner.style.display = 'none';
+    }
+  }
+}
+
+function renderSubscriptionView(){
+  const info = getSubscriptionInfo();
+  document.getElementById('subPlanLabel').textContent = session.plan || 'Not set';
+  document.getElementById('subCycleLabel').textContent = CYCLE_LABELS[session.billingCycle] || session.billingCycle || '–';
+  document.getElementById('subStatusLabel').textContent = info.trialing ? 'Free Trial' : (session.subscriptionStatus === 'active' ? 'Active' : 'Inactive');
+  document.getElementById('subStartLabel').textContent = session.subscriptionStartedAt ? new Date(session.subscriptionStartedAt).toDateString() : '–';
+  document.getElementById('subExpiryRowLabel').textContent = info.trialing ? 'Trial Ends' : 'Renews / Expires';
+  document.getElementById('subExpiryLabel').textContent = info.hasExpiry ? new Date(info.expiryStr).toDateString() : 'No expiry set';
+
+  document.getElementById('subCountdownTitle').textContent = info.trialing ? 'Trial Countdown' : 'Time Until Renewal';
+  const big = document.getElementById('subCountdownBig');
+  const sub = document.getElementById('subCountdownSub');
+  if(!info.hasExpiry){
+    big.textContent = '—';
+    sub.textContent = 'No expiry date on file.';
+  } else if(info.expired){
+    big.textContent = info.trialing ? 'Trial ended' : 'Expired';
+    big.style.color = '#b83a3a';
+    sub.textContent = 'Upgrade or renew to restore full access for your whole team.';
+  } else {
+    big.textContent = formatRemainingDuration(info.daysRemaining);
+    big.style.color = (info.daysRemaining <= 3) ? '#b83a3a' : 'var(--teal-900)';
+    sub.textContent = info.trialing
+      ? '(no card required until you choose to upgrade)'
+      : 'until your current billing cycle ends.';
+  }
+
+  // Prefill the payment form with what we already know — fully editable.
+  document.getElementById('payOrgName').value = session.orgName || '';
+  document.getElementById('payEmail').value = session.username || '';
+  document.getElementById('payPhone').value = session.phone || '';
+}
+
+document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(demoGuard()) return;
+  const msg = document.getElementById('payMsg');
+  const btn = document.getElementById('paySubmitBtn');
+  msg.className = ''; msg.textContent = '';
+
+  const planId = document.getElementById('payPlan').value;
+  if(!planId){ msg.className='text-danger'; msg.textContent='Please choose a plan.'; return; }
+  if(!navigator.onLine){ msg.className='text-danger'; msg.textContent='Reconnect to the internet to submit.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try{
+    const payload = {
+      ...authFields(session),
+      orgName: document.getElementById('payOrgName').value.trim(),
+      contactEmail: document.getElementById('payEmail').value.trim(),
+      contactPhone: document.getElementById('payPhone').value.trim(),
+      planId, billingCycle: planId.split('_')[1]
+    };
+    const file = document.getElementById('payScreenshot').files[0];
+    if(file){
+      const { base64, mimeType, filename } = await fileToBase64(file);
+      payload.screenshotBase64 = base64; payload.screenshotMimeType = mimeType; payload.screenshotFilename = filename;
+    }
+    const res = await apiCall('submitPaymentRequest', payload);
+    if(!res.success){ msg.className='text-danger'; msg.textContent = res.error || 'Could not submit.'; btn.disabled=false; btn.innerHTML='<i class="bi bi-send-check me-1"></i>Submit'; return; }
+    msg.className = 'text-success';
+    msg.textContent = "Submitted! We'll confirm by email, usually within an hour.";
+    document.getElementById('paymentForm').reset();
+    renderSubscriptionView();
+  }catch(err){
+    msg.className='text-danger'; msg.textContent='Something went wrong. Please try again.';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="bi bi-send-check me-1"></i>Submit';
+});
+
+// =====================================================================================
+// MESSAGES — send to Members, teammates, or yourself, over Email/SMS/WhatsApp.
+// =====================================================================================
+let msgAudience = 'members';
+let msgTeamContacts = [];
+
+function initMessagesView(){
+  document.querySelectorAll('.msg-audience-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.msg-audience-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      msgAudience = btn.dataset.audience;
+      renderMsgRecipients();
+    };
+  });
+  document.getElementById('msgSelectAllLink').onclick = (e) => {
+    e.preventDefault();
+    document.querySelectorAll('#msgRecipientList input[type=checkbox]').forEach(cb => cb.checked = true);
+  };
+  renderMsgRecipients();
+}
+
+async function renderMsgRecipients(){
+  const list = document.getElementById('msgRecipientList');
+  const block = document.getElementById('msgRecipientBlock');
+  if(msgAudience === 'self'){
+    block.style.display = 'none';
+    return;
+  }
+  block.style.display = 'block';
+  list.innerHTML = '<div class="text-muted" style="font-size:.82rem;">Loading…</div>';
+
+  if(msgAudience === 'members'){
+    if(!DB.members.length){ list.innerHTML = '<div class="text-muted" style="font-size:.82rem;">No members yet — add some under Members first.</div>'; return; }
+    list.innerHTML = DB.members.map(m => `
+      <div class="form-check">
+        <input class="form-check-input msg-recipient" type="checkbox" value="${m.id}" id="msgrec-${m.id}">
+        <label class="form-check-label" for="msgrec-${m.id}" style="font-size:.85rem;">${m.name || m.id} <span class="text-muted">${m.email || m.phone || ''}</span></label>
+      </div>`).join('');
+  } else if(msgAudience === 'team'){
+    // Demo: reuse the same static sample team as the Team & Roles tab instead of calling the API.
+    msgTeamContacts = [
+      { id:'demo-u1', username:'grace.o@riverside.test', fullName:'Grace Okafor' },
+      { id:'demo-u2', username:'daniel.k@riverside.test', fullName:'Daniel Kim' },
+      { id:'demo-u3', username:'amara.n@riverside.test', fullName:'Amara Nwosu' }
+    ];
+    list.innerHTML = msgTeamContacts.map(c => `
+        <div class="form-check">
+          <input class="form-check-input msg-recipient" type="checkbox" value="${c.id}" id="msgrec-${c.id}">
+          <label class="form-check-label" for="msgrec-${c.id}" style="font-size:.85rem;">${c.fullName} <span class="text-muted">${c.username}</span></label>
+        </div>`).join('');
+  }
+}
+
+document.getElementById('msgSendBtn').addEventListener('click', async () => {
+  if(demoGuard()) return;
+  const resultEl = document.getElementById('msgResult');
+  const linksPanel = document.getElementById('msgLinksPanel');
+  const linksList = document.getElementById('msgLinksList');
+  resultEl.className = ''; resultEl.textContent = '';
+  linksPanel.style.display = 'none';
+
+  const body = document.getElementById('msgBody').value.trim();
+  if(!body){ resultEl.className='text-danger'; resultEl.textContent='Write a message first.'; return; }
+  const channels = ['chEmail','chSms','chWhatsapp'].filter(id => document.getElementById(id).checked).map(id => ({chEmail:'email',chSms:'sms',chWhatsapp:'whatsapp'})[id]);
+  if(!channels.length){ resultEl.className='text-danger'; resultEl.textContent='Choose at least one channel.'; return; }
+  if(!navigator.onLine){ resultEl.className='text-danger'; resultEl.textContent='Reconnect to the internet to send.'; return; }
+
+  let recipients = [];
+  if(msgAudience === 'self'){
+    recipients = [{ label: session.fullName || session.username, email: session.username, phone: session.phone || '' }];
+  } else if(msgAudience === 'members'){
+    const ids = Array.from(document.querySelectorAll('.msg-recipient:checked')).map(cb => cb.value);
+    if(!ids.length){ resultEl.className='text-danger'; resultEl.textContent='Select at least one member.'; return; }
+    recipients = DB.members.filter(m => ids.includes(m.id)).map(m => ({ label: m.name || m.id, email: m.email || '', phone: m.phone || '' }));
+  } else if(msgAudience === 'team'){
+    const ids = Array.from(document.querySelectorAll('.msg-recipient:checked')).map(cb => cb.value);
+    if(!ids.length){ resultEl.className='text-danger'; resultEl.textContent='Select at least one teammate.'; return; }
+    recipients = msgTeamContacts.filter(c => ids.includes(c.id)).map(c => ({ label: c.fullName || c.username, email: c.username, phone: '' }));
+  }
+
+  const btn = document.getElementById('msgSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const res = await apiCall('sendMessage', {
+      ...authFields(session), audience: msgAudience, recipients, channels,
+      subject: document.getElementById('msgSubject').value.trim(), body
+    });
+    if(!res.success){ resultEl.className='text-danger'; resultEl.textContent = res.error || 'Could not send.'; }
+    else{
+      resultEl.className = 'text-success';
+      resultEl.textContent = `Sent — ${res.emailsSent} email(s) delivered.`;
+      const allLinks = [...res.smsLinks.map(l => ({...l, kind:'SMS'})), ...res.whatsappLinks.map(l => ({...l, kind:'WhatsApp'}))];
+      if(allLinks.length){
+        linksPanel.style.display = 'block';
+        linksList.innerHTML = allLinks.map(l => `<div class="mb-1"><a href="${l.url}" target="_blank">${l.kind} → ${l.label} (${l.phone})</a></div>`).join('');
+      }
+    }
+  }catch(err){
+    resultEl.className='text-danger'; resultEl.textContent='Something went wrong. Please try again.';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="bi bi-send me-1"></i>Send';
+});
+
+// =====================================================================================
+// USER MANUAL — plan/role-aware guide list, generated and downloaded as Markdown
+// (no separate file hosting needed).
+// =====================================================================================
+function manualCoreContent(){
+  return `# OKV Organization Management System — User Guide
+
+## Getting Started
+- Log in at login.html with the email and password you signed up with.
+- Your dashboard shows live totals across every module your organization uses.
+
+## Managing Records
+- Each module (Members, Finance, Events, Projects, etc.) has its own tab in the sidebar.
+- Click **Add** to create a record, or the row actions to edit/delete one.
+- Use **Import / Export** on any module to bring in a spreadsheet or download a CSV/JSON template that shows the exact columns expected.
+
+## Works Offline
+- Every change you make is saved to your device immediately, even with no internet.
+- Once you're back online, it syncs automatically — or tap **Sync Now** in the top bar any time.
+
+## Messages
+- Use the **Messages** tab to email (or generate tap-to-send SMS/WhatsApp links for) your members, your teammates, or yourself.
+
+## My Account
+- Change your password any time from **My Account**.
+
+## Need Help?
+Contact your organization's Admin, or reach out to OKV Technology Consults:
+- Email: technologyokv@gmail.com
+- Phone: +2348104141138
+- Website: www.okvtechnology.com
+`;
+}
+function manualAdminContent(){
+  return `# OKV Organization Management System — Admin Guide
+
+## Team & Roles
+- Create teammates under **Team & Roles**, assign one or more roles, and Activate/Suspend access any time.
+- Only Admins (the account owner, or anyone given the "Organization Super Admin" role) see this tab.
+
+## Install Link
+- Share the link under **Install Link** so new teammates land on an install-only screen, then log in themselves once you've created their account.
+
+## Subscription & Billing
+- **Subscription** shows your plan, billing cycle, and countdown to your trial or renewal date.
+- To upgrade or renew, transfer to the account shown, upload your screenshot, and submit — you'll get a confirmation email, usually within an hour.
+
+## Reports, Export & Backup
+- **Reports**, CSV/JSON **Export**, and **Backup & Restore** are Admin-only — Import is available to everyone.
+`;
+}
+function manualGrowthContent(){
+  return `# Growth Plan — Advanced Features Guide
+
+## Unlimited Team Members
+- Growth removes the 5-user limit on Starter — add as many teammates as you need.
+
+## Reports & Analytics
+- Full reporting across every module, exportable as CSV or JSON any time.
+
+## Backup & Restore
+- Download a full snapshot of your organization's data whenever you like, and restore from one if you ever need to.
+
+## Priority Support
+- Growth includes priority email + chat support.
+`;
+}
+
+// ---------------------------------------------------------------- ROLE-SPECIFIC GUIDES
+const ROLE_MANUAL_CONTENT = {
+  'Organization Super Admin': () => `# Role Guide — Organization Super Admin
+
+This role has the same access as the account owner — full control over every module,
+Team & Roles, Settings, Subscription & Billing, and Reports.
+
+## Your Priorities
+1. **Team & Roles** — add teammates, assign roles, and Suspend/Activate/Delete access as your team changes.
+2. **Settings** — keep your organization's name, logo, and picklists accurate; every other module reads from these.
+3. **Subscription & Billing** — watch your trial/renewal countdown and keep payment on track.
+4. **Reports** — check in weekly; Daily/Weekly/Quarterly/Yearly views are all one click away.
+
+## Day to Day
+Use whichever modules your organization runs — you can see and edit everything, including
+records other team members created.
+`,
+  'Executive Director / Organization Head': () => `# Role Guide — Executive Director / Organization Head
+
+Your focus is oversight, not day-to-day data entry — the **Overview** and **Reports** tabs
+are built for exactly that.
+
+## Your Priorities
+1. **Overview** — total members, net balance, active projects, fee collection rate, and
+   attendance rate, at a glance, refreshed automatically.
+2. **Reports** — switch between Today / This Week / This Month / This Quarter / This Year /
+   All Time to see the shape of your organization over whatever window matters right now.
+3. **Print / Save PDF** — generate a letterhead report (your logo + org name included)
+   ready to bring into a board or leadership meeting.
+4. **Messages** — send an announcement to the whole team or specific people without
+   needing a separate email tool.
+
+## What You Won't Usually Need
+Day-to-day record entry (adding individual members, transactions, etc.) is typically
+handled by the role responsible for that area — Finance Officer for Finance, HR/Staff
+Manager for Staff, and so on.
+`,
+  'Operations Manager': () => `# Role Guide — Operations Manager
+
+You're the one keeping the day-to-day running smoothly across most modules.
+
+## Your Priorities
+1. **Members, Events, Attendance, Departments** — these are usually your core working
+   modules day to day.
+2. **Projects** — track status, budget vs. spend, and completion percentage.
+3. **Reports** — the Membership Growth and Attendance figures are the ones you'll check most.
+
+## Good Habits
+- Use **Import/Export** on any module when moving data in bulk — check **Format Guide**
+  first so your column headers match exactly.
+- Keep **Departments** accurate first — Members and Staff both reference it, so it's worth
+  getting right early.
+`,
+  'HR / Staff Manager': () => `# Role Guide — HR / Staff Manager
+
+Your working modules are **Staff**, **Volunteers**, and **Departments**.
+
+## Your Priorities
+1. **Staff** — role/title, department, employment start date, and contact details for
+   every paid team member.
+2. **Volunteers** — separate from paid Staff: availability, skills, and which activities
+   they're assigned to.
+3. **Departments** — the structure both Staff and Members are organized against — keep
+   this current as your organization's units/branches change.
+
+## Note on Login Access
+Adding someone to **Staff** does not give them a login — that's handled separately by an
+Admin under **Team & Roles**. Staff records and system logins are intentionally separate.
+`,
+  'Program / Project Officer': () => `# Role Guide — Program / Project Officer
+
+Your working modules are **Projects**, **Events**, and **Outreach**.
+
+## Your Priorities
+1. **Projects** — status, timeline, budget vs. spend, and the team responsible for each
+   initiative.
+2. **Events** — plan and log events: date, location, type, and expected vs. actual turnout.
+3. **Outreach** — community activity logs: date, location, activity type, and people
+   reached — useful for donor/grant reporting.
+
+## Good Habits
+- Pair **Events** with **Attendance** for a complete before-and-after picture of turnout.
+- Update **Projects**' progress percentage as work happens, not just at the end — it's
+  what your Reports page and leadership see.
+`,
+  'Finance Officer / Accountant': () => `# Role Guide — Finance Officer / Accountant
+
+Your working modules are **Finance**, **Fees**, and **Donors**.
+
+## Your Priorities
+1. **Finance** — every income and expense entry: category, amount (₦ Naira), date, and
+   payment method. This is your day-to-day ledger.
+2. **Fees** — dues/levies owed vs. paid per member, with automatic balance and status.
+3. **Donors** — giving history tracked separately from regular member fees — useful for
+   designated giving or grant relationships.
+
+## Good Habits
+- Reconcile **Finance** entries regularly rather than in a end-of-month batch — the
+  Reports page's Net Balance and Income vs. Expenses figures are only as current as your
+  entries.
+- Use **Export as CSV** before any external audit or board financial review.
+`,
+  'Asset / Administrative Officer': () => `# Role Guide — Asset / Administrative Officer
+
+Your working module is **Assets**, plus general administrative support across the system.
+
+## Your Priorities
+1. **Assets** — description, category, value, location/custodian, and condition for
+   everything your organization owns.
+2. Keep records current after any purchase, transfer, or disposal — this is what audits
+   and insurance reviews rely on.
+
+## Good Habits
+- Review **Assets** at least quarterly — use the **This Quarter** report period to check
+  what's changed.
+- Use **Export as CSV** to hand asset records to an external auditor or insurer.
+`,
+  'Staff / Data Entry Officer': () => `# Role Guide — Staff / Data Entry Officer
+
+Your focus is accurate, day-to-day data entry in whichever module(s) your Admin has
+assigned you to.
+
+## Your Priorities
+1. **Add / Edit records** — click **+ Add** in any module you've been given access to,
+   fill in the form, and **Save**. Click any row to edit it later.
+2. **Search** — use the search box above any table instead of scrolling to find a record.
+3. **Works Offline** — keep entering data even with no signal; it saves to your device
+   and syncs automatically once you're back online.
+
+## What You'll Typically See
+You'll generally only see records you personally created, unless your Admin has given
+you broader access. Reports, Export, and Backup are Admin-only — ask your Admin if you
+need a report or an export.
+`
+};
+function manualRoleContent(role){
+  const gen = ROLE_MANUAL_CONTENT[role];
+  return gen ? gen() : null;
+}
+function renderManualView(){
+  const guides = [
+    { title:'User Guide', desc:'Core features everyone on your team can use.', content: manualCoreContent(), file:'okv-oms-user-guide.md' }
+  ];
+  const myRoles = new Set(session.roles || []);
+  if(isAdminUser()) myRoles.add('Organization Super Admin');
+  ROLE_OPTIONS.forEach(role => {
+    if(!myRoles.has(role)) return;
+    const content = manualRoleContent(role);
+    if(!content) return;
+    guides.push({ title: role, desc: 'Guide for your ' + role + ' responsibilities.', content, file: 'okv-oms-role-guide-' + role.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.md' });
+  });
+  if(isAdminUser()) guides.push({ title:'Admin Guide', desc:'Team management, billing, and Admin-only tools.', content: manualAdminContent(), file:'okv-oms-admin-guide.md' });
+  if(isAdminUser() && (session.plan || '').toLowerCase().includes('growth')) guides.push({ title:'Growth Plan Guide', desc:'Advanced features included in your plan.', content: manualGrowthContent(), file:'okv-oms-growth-guide.md' });
+
+  document.getElementById('manualList').innerHTML = guides.map(g => `
+    <div class="col-md-4">
+      <div class="panel h-100">
+        <h6 style="font-weight:700;"><i class="bi bi-file-earmark-text me-1"></i>${g.title}</h6>
+        <p class="text-muted" style="font-size:.82rem;">${g.desc}</p>
+        <button class="btn btn-teal btn-sm" onclick='downloadManual(${JSON.stringify(g.content)}, "${g.file}")'><i class="bi bi-download me-1"></i>Download</button>
+      </div>
+    </div>`).join('');
+}
+function downloadManual(content, filename){
+  const blob = new Blob([content], {type:'text/markdown;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+}
+
+
+function goToSubscriptionTab(){
+  document.querySelector('.side-link[data-view="subscription"]')?.click();
+}
+
+function syncOrgUI(){
+  document.getElementById('brandOrgName').textContent = CONFIG.orgName;
+  document.getElementById('loadTitle').textContent = CONFIG.orgName;
+  document.title = CONFIG.orgName + ' — OKV Organization Management System';
+  document.getElementById('topbarMeta').textContent = `Financial Year: ${CONFIG.financialYear} · Currency: ${CONFIG.ccySymbol} ${CONFIG.ccyName}`;
+  applyOrgLogo();
+}
+
+// ---------------------------------------------------------------- ORGANIZATION LOGO
+function applyOrgLogo(){
+  const mark = document.getElementById('brandMark');
+  const preview = document.getElementById('logoPreview');
+  const fallback = document.getElementById('logoPreviewFallback');
+  const removeBtn = document.getElementById('removeLogoBtn');
+  const initial = (CONFIG.orgName || 'O').trim().charAt(0).toUpperCase() || 'O';
+  if(CONFIG.orgLogo){
+    mark.innerHTML = `<img src="${CONFIG.orgLogo}" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">`;
+    if(preview){ preview.src = CONFIG.orgLogo; preview.style.display = 'block'; }
+    if(fallback) fallback.style.display = 'none';
+    if(removeBtn) removeBtn.style.display = 'inline-block';
+  } else {
+    mark.textContent = initial;
+    if(preview) preview.style.display = 'none';
+    if(fallback){ fallback.textContent = initial; fallback.style.display = 'block'; }
+    if(removeBtn) removeBtn.style.display = 'none';
+  }
+}
+async function handleLogoUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 900*1024){ toast('Please choose an image under 900KB — logos are stored inline for offline use.', 'error'); e.target.value=''; return; }
+  const dataUrl = await fileToDataUrl(file);
+  CONFIG.orgLogo = dataUrl;
+  await idbSaveConfig();
+  applyOrgLogo();
+  toast('Logo updated across the system.', 'success');
+}
+function removeLogo(){
+  CONFIG.orgLogo = '';
+  idbSaveConfig();
+  applyOrgLogo();
+  document.getElementById('logoFileInput').value = '';
+}
+function fileToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function applySettings(){
+  CONFIG.orgName = document.getElementById('setOrgName').value || CONFIG.orgName;
+  CONFIG.orgType = document.getElementById('setOrgType').value;
+  CONFIG.orgReg = document.getElementById('setOrgReg').value;
+  CONFIG.ccySymbol = document.getElementById('setCcySymbol').value || '₦';
+  CONFIG.ccyName = document.getElementById('setCcyName').value;
+  CONFIG.financialYear = document.getElementById('setOrgFY').value;
+  CONFIG.dateFormat = document.getElementById('setOrgDF').value;
+  CCY = CONFIG.ccySymbol;
+  await idbSaveConfig(); // persist to IndexedDB
+
+  // realtime propagation across the whole system
+  syncOrgUI();
+  Object.keys(SCHEMAS).forEach(k => fillTable(k));
+  refreshDashboard();
+  if(document.getElementById('view-reports').classList.contains('active')) renderReports();
+
+  const note = document.getElementById('settingsSavedNote');
+  note.textContent = 'Saved — changes applied across the system.';
+  setTimeout(()=>{ note.textContent=''; }, 2500);
+}
+
+// ---------------------------------------------------------------- PICKLISTS (drive every dropdown)
+const PICKLISTS = {
+  memberStatus: ['Active','Inactive','Suspended','Former Member'],
+  membershipType: ['Full Member','Associate','Student','Honorary','Life Member','Corporate'],
+  gender: ['Male','Female','Other','Prefer not to say'],
+  department: ['Finance','Welfare','Membership','Events','Public Relations','HR','Programs','Admin','Management'],
+  position: ['Director','Treasurer','Secretary','Coordinator','Manager','Officer','Assistant','Member','Intern'],
+  eventCategory: ['Meeting','Training','Fundraiser','Outreach','Workshop','Conference','Social','Membership'],
+  eventStatus: ['Planning','Upcoming','Active','Completed','Cancelled'],
+  projectStatus: ['Planning','Active','Completed','Suspended','Cancelled'],
+  priority: ['High','Medium','Low'],
+  attendanceStatus: ['Present','Absent','Excused','Late'],
+  assetCondition: ['Excellent','Good','Fair','Poor','Disposed'],
+  assetCategory: ['Electronics','Furniture','Vehicle','Equipment','Stationery','Other'],
+  donorType: ['Individual','Corporate Sponsor','Foundation','Grant Org','Government','Other'],
+  incomeCategory: ['Membership Fees','Donations','Grants','Sponsorships','Fundraiser','Services','Interest','Other'],
+  expenseCategory: ['Operations','Program Costs','Salaries','Events','Transport','Utilities','Maintenance','Training','Marketing','Other'],
+  paymentMethod: ['Cash','Bank Transfer','Cheque','Mobile Money','Card','Other'],
+  feeStatus: ['Paid','Unpaid','Partial','Waived','Pending'],
+  volunteerStatus: ['Active','Inactive','Completed'],
+  employmentType: ['Full-time','Part-time','Contract','Volunteer','Intern'],
+  outreachCategory: ['Health','Youth Development','Education','Economic Empowerment','Environment','Welfare','Legal Aid','Other']
+};
+
+// ---------------------------------------------------------------- DATA (empty by default)
+// No demo/dummy records ship in the app. Every module starts empty; the very
+// first record a user adds is written straight to IndexedDB and stays there.
+const DB = {
+  members: [],
+  departments: [],
+  events: [],
+  attendance: [],
+  projects: [],
+  volunteers: [],
+  finance: [],
+  assets: [],
+  donors: [],
+  fees: [],
+  staff: [],
+  outreach: []
+};
+
+// ---------------------------------------------------------------- DEMO SAMPLE DATA
+// Deterministic-shape realistic sample data so a first-time visitor to the live demo sees
+// a populated, convincing organization rather than an empty dashboard. Generated once on
+// first load (see initApp below) and cached in IndexedDB from then on for that device.
+function seedDemoSampleData(){
+  const dep = (n,i)=>`DEPT-${String(i+1).padStart(3,'0')}`;
+  const pad = (p,i)=>`${p}-${String(i+1).padStart(3,'0')}`;
+  const days = (n)=>{ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+
+  const firstNames = ['Chidinma','Emeka','Aisha','Tunde','Ngozi','Ibrahim','Folake','Chukwuemeka','Amina','Bayo','Blessing','Yusuf','Kemi','Obinna','Halima','Segun','Adaeze','Musa','Funmilayo','Chinedu','Zainab','Wale','Ifeoma','Suleiman','Ronke','Uche','Hauwa','Damilola','Nnamdi','Fatima','Kunle','Chiamaka','Abdullahi','Temitope','Ekene','Maryam','Gbenga','Adaobi','Sani','Yetunde'];
+  const lastNames = ['Okafor','Adeyemi','Bello','Nwosu','Ibrahim','Okonkwo','Balogun','Eze','Suleiman','Afolabi','Chukwu','Yusuf','Adekunle','Obi','Mohammed','Osagie','Uzoma','Lawal','Anyanwu','Danjuma'];
+  const rand = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+  const fullName = ()=>`${rand(firstNames)} ${rand(lastNames)}`;
+
+  // ---- Departments ----
+  DB.departments = ['Finance','Membership','Events','Programs','Public Relations','Welfare','HR','Admin'].map((name,i)=>({
+    id: pad('DEPT',i), name, head: fullName(), memberCount: 0,
+    budget: [800000,600000,450000,900000,350000,500000,300000,400000][i],
+    budgetUsed: [612000,410000,300000,705000,210000,340000,180000,260000][i],
+    status: 'Active'
+  }));
+
+  // ---- Members (215 total) ----
+  const statuses = ['Active','Active','Active','Active','Inactive','Suspended','Former Member'];
+  const memTypes = PICKLISTS.membershipType, positions = PICKLISTS.position, depts = DB.departments.map(d=>d.name);
+  DB.members = [];
+  for(let i=0;i<215;i++){
+    const deptName = rand(depts);
+    const status = i < 178 ? 'Active' : rand(statuses);
+    DB.members.push({
+      id: pad('MEM',i), name: fullName(), gender: rand(PICKLISTS.gender),
+      phone: `080${Math.floor(10000000+Math.random()*89999999)}`,
+      email: `member${i+1}@example.org`,
+      joinDate: days(-Math.floor(Math.random()*1500)),
+      status, department: deptName, position: rand(positions), membershipType: rand(memTypes)
+    });
+  }
+  DB.departments.forEach(d => d.memberCount = DB.members.filter(m=>m.department===d.name).length);
+
+  // ---- Staff (12) ----
+  DB.staff = Array.from({length:12}).map((_,i)=>({
+    id: pad('STF',i), name: fullName(), gender: rand(PICKLISTS.gender), dept: rand(depts),
+    position: rand(['Program Manager','Accountant','Administrator','Coordinator','Field Officer','Secretary']),
+    empType: rand(PICKLISTS.employmentType), startDate: days(-Math.floor(Math.random()*2000)),
+    salary: [180000,220000,150000,260000,190000,175000][i%6]*1000/1000,
+    status: 'Active', perfScore: (3.5+Math.random()*1.5).toFixed(1)
+  }));
+
+  // ---- Volunteers (34, 27 active) ----
+  DB.volunteers = Array.from({length:34}).map((_,i)=>({
+    id: pad('VOL',i), name: fullName(), gender: rand(PICKLISTS.gender),
+    phone: `081${Math.floor(10000000+Math.random()*89999999)}`,
+    skills: rand(['Teaching','Logistics','First Aid','Counseling','IT Support','Event Planning','Fundraising']),
+    assignedProject: rand(['Community Health Outreach','Youth Skills Program','Annual Fundraiser Gala','Education Support Drive','—']),
+    hrsCommitted: 20+Math.floor(Math.random()*40), hrsServed: 10+Math.floor(Math.random()*35),
+    status: i < 27 ? 'Active' : rand(['Inactive','Completed'])
+  }));
+
+  // ---- Events (14) ----
+  const evNames = ['Annual General Meeting','Community Health Outreach Day','Youth Leadership Summit','Fundraiser Gala Night','Quarterly Board Meeting','Staff Training Workshop','Volunteer Appreciation Day','Membership Drive','Education Support Fair','Christmas Charity Drive','Strategic Planning Retreat','New Member Orientation','Skills Acquisition Bootcamp','Partner Organizations Forum'];
+  DB.events = evNames.map((name,i)=>{
+    const offset = (i-6)*11;
+    return { id: pad('EVT',i), name, category: rand(PICKLISTS.eventCategory), startDate: days(offset), endDate: days(offset),
+      venue: rand(['Main Hall','Conference Center','Community Center','Head Office','Zonal Office']), organizer: fullName(),
+      capacity: 100+Math.floor(Math.random()*300), registered: 60+Math.floor(Math.random()*250),
+      status: offset < -2 ? 'Completed' : (offset <= 2 ? 'Active' : 'Upcoming'), budget: 150000+Math.floor(Math.random()*600000) };
+  });
+
+  // ---- Attendance (90 entries across recent events) ----
+  DB.attendance = [];
+  let attId = 0;
+  DB.events.filter(e=>e.status==='Completed').slice(0,6).forEach(ev => {
+    for(let i=0;i<15;i++){
+      const m = rand(DB.members);
+      DB.attendance.push({ id: pad('ATT',attId++), date: ev.startDate, event: ev.name, memberId: m.id, memberName: m.name,
+        department: m.department, status: rand(['Present','Present','Present','Absent','Excused','Late']) });
+    }
+  });
+
+  // ---- Projects (8, 5 active) ----
+  const projNames = ['Community Health Outreach','Youth Skills Program','Annual Fundraiser Gala','Education Support Drive','Clean Water Initiative','Emergency Relief Fund','Digital Literacy Program','Micro-Grant Scheme'];
+  DB.projects = projNames.map((name,i)=>{
+    const budget = 800000+Math.floor(Math.random()*4000000);
+    const pct = i<5 ? 30+Math.floor(Math.random()*60) : 100;
+    return { id: pad('PRJ',i), name, manager: fullName(), sponsor: rand(['Internal','Global Partners Foundation','State Ministry Grant','Corporate Sponsor']),
+      startDate: days(-200-i*30), endDate: days(60+i*20), budget, spent: Math.floor(budget*pct/100*0.9),
+      pctComplete: pct, status: i<5 ? 'Active' : 'Completed', priority: rand(PICKLISTS.priority) };
+  });
+
+  // ---- Outreach (7) ----
+  const orNames = ['Rural Health Screening','Back-to-School Support','Skills Acquisition for Widows','Youth Anti-Drug Campaign','Clean Water Access Project','Legal Aid Clinic','Food Bank Distribution'];
+  DB.outreach = orNames.map((name,i)=>({
+    id: pad('ORP',i), name, category: rand(PICKLISTS.outreachCategory), leadOfficer: fullName(),
+    targetCommunity: rand(['Ikorodu','Epe','Badagry','Ajah','Mushin','Agege','Ikeja']),
+    startDate: days(-100-i*25), budget: 200000+Math.floor(Math.random()*500000),
+    spent: 150000+Math.floor(Math.random()*400000), beneficiaries: 80+Math.floor(Math.random()*400),
+    status: rand(['Completed','Active','Active'])
+  }));
+
+  // ---- Finance (150 transactions across last 12 months) ----
+  DB.finance = [];
+  for(let i=0;i<150;i++){
+    const isIncome = Math.random() < 0.55;
+    const cat = isIncome ? rand(PICKLISTS.incomeCategory) : rand(PICKLISTS.expenseCategory);
+    const amount = isIncome ? (20000+Math.floor(Math.random()*400000)) : (10000+Math.floor(Math.random()*250000));
+    DB.finance.push({ id: pad('FIN',i), type: isIncome?'Income':'Expense', date: days(-Math.floor(Math.random()*365)),
+      category: cat, amount, description: `${cat} — ${isIncome?'received':'processed'}`, department: rand(depts),
+      paymentMethod: rand(PICKLISTS.paymentMethod), status: rand(['Completed','Completed','Completed','Pending']) });
+  }
+
+  // ---- Fees (110, ~78% collection rate) ----
+  DB.fees = [];
+  for(let i=0;i<110;i++){
+    const m = DB.members[i % DB.members.length];
+    const due = 5000+Math.floor(Math.random()*15000);
+    const r = Math.random();
+    const paid = r < 0.68 ? due : (r < 0.85 ? Math.floor(due*(0.3+Math.random()*0.5)) : 0);
+    DB.fees.push({ id: pad('FEE',i), memberId: m.id, memberName: m.name, membershipType: m.membershipType,
+      amountDue: due, amountPaid: paid, balance: due-paid, dueDate: days(-30+Math.floor(Math.random()*60)),
+      status: paid===due?'Paid':(paid===0?'Unpaid':'Partial') });
+  }
+
+  // ---- Donors (18) ----
+  DB.donors = Array.from({length:18}).map((_,i)=>({
+    id: pad('DON',i), name: i%3===0 ? `${rand(['Global','Heritage','Unity','Bright Future','Amara'])} Foundation` : fullName(),
+    type: rand(PICKLISTS.donorType), contactName: fullName(), email: `donor${i+1}@example.org`,
+    totalContributed: 100000+Math.floor(Math.random()*3000000), lastDonation: days(-Math.floor(Math.random()*180)),
+    projectSupported: rand(projNames), status: 'Active'
+  }));
+
+  // ---- Assets (22) ----
+  const assetItems = [['Office Laptops','Electronics',12,220000],['Projector','Electronics',3,180000],['Office Chairs','Furniture',40,15000],
+    ['Conference Table','Furniture',2,150000],['Toyota Hiace Bus','Vehicle',1,8500000],['Generator (10KVA)','Equipment',2,650000],
+    ['Filing Cabinets','Furniture',10,25000],['Printers','Electronics',5,95000],['CCTV System','Equipment',1,320000],
+    ['Water Dispenser','Equipment',4,45000],['Stationery Stock','Stationery',1,60000],['Air Conditioners','Electronics',8,140000]];
+  DB.assets = assetItems.map((a,i)=>({
+    id: pad('AST',i), item:a[0], category:a[1], qty:a[2], unitCost:a[3], totalValue:a[2]*a[3],
+    location: rand(['Head Office','Zonal Office A','Zonal Office B','Storage Facility']),
+    condition: rand(PICKLISTS.assetCondition), dateAcquired: days(-Math.floor(Math.random()*1200))
+  }));
+}
+
+
+// ---------------------------------------------------------------- SCHEMAS (define columns + form fields per module)
+// Each `key` below defines a data column, and idPrefix defines the ID-generator rule.
+const SCHEMAS = {
+  members: {label:'Members', icon:'bi-people', idPrefix:'MEM', title:'Member Database', sub:'All registered members',
+    columns:['id','name','gender','phone','email','joinDate','status','department','position','membershipType'],
+    headers:['Member ID','Full Name','Gender','Phone','Email','Join Date','Status','Department','Position','Type'],
+    fields:[
+      {key:'name',label:'Full Name',type:'text',required:true},
+      {key:'gender',label:'Gender',type:'select',options:PICKLISTS.gender},
+      {key:'phone',label:'Phone',type:'text'},
+      {key:'email',label:'Email',type:'email'},
+      {key:'joinDate',label:'Join Date',type:'date'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.memberStatus},
+      {key:'department',label:'Department',type:'select',options:PICKLISTS.department},
+      {key:'position',label:'Position',type:'select',options:PICKLISTS.position},
+      {key:'membershipType',label:'Membership Type',type:'select',options:PICKLISTS.membershipType},
+    ]},
+  departments: {label:'Departments', icon:'bi-diagram-3', idPrefix:'DEPT', title:'Departments & Committees', sub:'Org structure and budgets',
+    columns:['id','name','head','memberCount','budget','budgetUsed','status'],
+    headers:['Dept ID','Department','Head / Chair','Members','Budget','Used','Status'],
+    fields:[
+      {key:'name',label:'Department Name',type:'text',required:true},
+      {key:'head',label:'Head / Chair',type:'text'},
+      {key:'memberCount',label:'Member Count',type:'number'},
+      {key:'budget',label:'Annual Budget',type:'number'},
+      {key:'budgetUsed',label:'Budget Used',type:'number'},
+      {key:'status',label:'Status',type:'select',options:['Active','Inactive']},
+    ]},
+  volunteers: {label:'Volunteers', icon:'bi-person-hearts', idPrefix:'VOL', title:'Volunteers Register', sub:'Skills, hours and assignments',
+    columns:['id','name','gender','phone','skills','assignedProject','hrsCommitted','hrsServed','status'],
+    headers:['Vol ID','Full Name','Gender','Phone','Skills','Project','Hrs Committed','Hrs Served','Status'],
+    fields:[
+      {key:'name',label:'Full Name',type:'text',required:true},
+      {key:'gender',label:'Gender',type:'select',options:PICKLISTS.gender},
+      {key:'phone',label:'Phone',type:'text'},
+      {key:'skills',label:'Skills',type:'text'},
+      {key:'assignedProject',label:'Assigned Project ID',type:'text'},
+      {key:'hrsCommitted',label:'Hrs Committed',type:'number'},
+      {key:'hrsServed',label:'Hrs Served',type:'number'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.volunteerStatus},
+    ]},
+  staff: {label:'HR / Staff', icon:'bi-person-badge', idPrefix:'STF', title:'Staff Directory', sub:'HR & payroll snapshot',
+    columns:['id','name','gender','dept','position','empType','startDate','salary','status','perfScore'],
+    headers:['Staff ID','Full Name','Gender','Dept','Position','Type','Start Date','Salary','Status','Perf.'],
+    fields:[
+      {key:'name',label:'Full Name',type:'text',required:true},
+      {key:'gender',label:'Gender',type:'select',options:['M','F','Other']},
+      {key:'dept',label:'Department',type:'select',options:PICKLISTS.department},
+      {key:'position',label:'Position',type:'select',options:PICKLISTS.position},
+      {key:'empType',label:'Employment Type',type:'select',options:PICKLISTS.employmentType},
+      {key:'startDate',label:'Start Date',type:'date'},
+      {key:'salary',label:'Salary',type:'number'},
+      {key:'status',label:'Status',type:'select',options:['Active','On Leave','Former']},
+      {key:'perfScore',label:'Performance Score (1-5)',type:'number'},
+    ]},
+  events: {label:'Events', icon:'bi-calendar-event', idPrefix:'EVT', title:'Events & Activities Register', sub:'Meetings, trainings and fundraisers',
+    columns:['id','name','category','startDate','endDate','venue','organizer','capacity','registered','status','budget'],
+    headers:['Event ID','Event Name','Category','Start','End','Venue','Organizer','Capacity','Registered','Status','Budget'],
+    fields:[
+      {key:'name',label:'Event Name',type:'text',required:true},
+      {key:'category',label:'Category',type:'select',options:PICKLISTS.eventCategory},
+      {key:'startDate',label:'Start Date',type:'date'},
+      {key:'endDate',label:'End Date',type:'date'},
+      {key:'venue',label:'Venue',type:'text'},
+      {key:'organizer',label:'Organizer',type:'text'},
+      {key:'capacity',label:'Capacity',type:'number'},
+      {key:'registered',label:'Registered',type:'number'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.eventStatus},
+      {key:'budget',label:'Budget',type:'number'},
+    ]},
+  attendance: {label:'Attendance', icon:'bi-check2-square', idPrefix:'ATT', title:'Attendance Register', sub:'Per-event attendance records',
+    columns:['id','date','event','memberId','memberName','department','status'],
+    headers:['Record ID','Date','Event / Meeting','Member ID','Member Name','Department','Status'],
+    fields:[
+      {key:'date',label:'Date',type:'date',required:true},
+      {key:'event',label:'Event / Meeting',type:'text'},
+      {key:'memberId',label:'Member ID',type:'text'},
+      {key:'memberName',label:'Member Name',type:'text'},
+      {key:'department',label:'Department',type:'select',options:PICKLISTS.department},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.attendanceStatus},
+    ]},
+  projects: {label:'Projects', icon:'bi-kanban', idPrefix:'PRJ', title:'Projects Register', sub:'Budgets, progress and ownership',
+    columns:['id','name','manager','sponsor','startDate','endDate','budget','spent','pctComplete','status','priority'],
+    headers:['Project ID','Project Name','Manager','Sponsor','Start','End','Budget','Spent','% Done','Status','Priority'],
+    fields:[
+      {key:'name',label:'Project Name',type:'text',required:true},
+      {key:'manager',label:'Manager',type:'text'},
+      {key:'sponsor',label:'Sponsor / Donor',type:'text'},
+      {key:'startDate',label:'Start Date',type:'date'},
+      {key:'endDate',label:'End Date',type:'date'},
+      {key:'budget',label:'Budget',type:'number'},
+      {key:'spent',label:'Spent',type:'number'},
+      {key:'pctComplete',label:'% Complete',type:'number'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.projectStatus},
+      {key:'priority',label:'Priority',type:'select',options:PICKLISTS.priority},
+    ]},
+  outreach: {label:'Outreach Programs', icon:'bi-globe2', idPrefix:'ORP', title:'Outreach Program Register', sub:'Community programs and impact',
+    columns:['id','name','category','leadOfficer','targetCommunity','startDate','budget','spent','beneficiaries','status'],
+    headers:['Program ID','Program Name','Category','Lead Officer','Target Community','Start','Budget','Spent','Beneficiaries','Status'],
+    fields:[
+      {key:'name',label:'Program Name',type:'text',required:true},
+      {key:'category',label:'Category',type:'select',options:PICKLISTS.outreachCategory},
+      {key:'leadOfficer',label:'Lead Officer',type:'text'},
+      {key:'targetCommunity',label:'Target Community',type:'text'},
+      {key:'startDate',label:'Start Date',type:'date'},
+      {key:'budget',label:'Budget',type:'number'},
+      {key:'spent',label:'Spent',type:'number'},
+      {key:'beneficiaries',label:'Beneficiaries',type:'number'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.eventStatus},
+    ]},
+  finance: {label:'Finance', icon:'bi-cash-coin', idPrefix:'FIN', title:'Finance — Income & Expense Ledger', sub:'All transactions',
+    columns:['id','type','date','category','amount','description','department','paymentMethod','status'],
+    headers:['Record ID','Type','Date','Category','Amount','Description','Department','Payment Method','Status'],
+    fields:[
+      {key:'type',label:'Type',type:'select',options:['Income','Expense'],required:true},
+      {key:'date',label:'Date',type:'date'},
+      {key:'category',label:'Category',type:'text'},
+      {key:'amount',label:'Amount',type:'number'},
+      {key:'description',label:'Description',type:'text'},
+      {key:'department',label:'Department',type:'select',options:PICKLISTS.department},
+      {key:'paymentMethod',label:'Payment Method',type:'select',options:PICKLISTS.paymentMethod},
+      {key:'status',label:'Status',type:'select',options:['Confirmed','Pending']},
+    ]},
+  fees: {label:'Membership Fees', icon:'bi-credit-card', idPrefix:'FEE', title:'Membership Fees Register', sub:'Dues, payments and balances',
+    columns:['id','memberId','memberName','membershipType','amountDue','amountPaid','balance','dueDate','status'],
+    headers:['Record ID','Member ID','Member Name','Type','Due','Paid','Balance','Due Date','Status'],
+    fields:[
+      {key:'memberId',label:'Member ID',type:'text',required:true},
+      {key:'memberName',label:'Member Name',type:'text'},
+      {key:'membershipType',label:'Membership Type',type:'select',options:PICKLISTS.membershipType},
+      {key:'amountDue',label:'Amount Due',type:'number'},
+      {key:'amountPaid',label:'Amount Paid',type:'number'},
+      {key:'balance',label:'Balance',type:'number'},
+      {key:'dueDate',label:'Due Date',type:'date'},
+      {key:'status',label:'Status',type:'select',options:PICKLISTS.feeStatus},
+    ]},
+  donors: {label:'Donors & Partners', icon:'bi-hand-thumbs-up', idPrefix:'DON', title:'Donors & Partners Register', sub:'Contributions and pledges',
+    columns:['id','name','type','contactName','email','totalContributed','lastDonation','projectSupported','status'],
+    headers:['Donor ID','Donor / Sponsor','Type','Contact','Email','Total','Last Donation','Project','Status'],
+    fields:[
+      {key:'name',label:'Donor / Sponsor Name',type:'text',required:true},
+      {key:'type',label:'Type',type:'select',options:PICKLISTS.donorType},
+      {key:'contactName',label:'Contact Name',type:'text'},
+      {key:'email',label:'Email',type:'email'},
+      {key:'totalContributed',label:'Total Contributed',type:'number'},
+      {key:'lastDonation',label:'Last Donation',type:'date'},
+      {key:'projectSupported',label:'Project Supported',type:'text'},
+      {key:'status',label:'Retention Status',type:'select',options:['Active','Lapsed']},
+    ]},
+  assets: {label:'Assets', icon:'bi-box-seam', idPrefix:'AST', title:'Assets Register', sub:'Inventory and condition',
+    columns:['id','item','category','qty','unitCost','totalValue','location','condition','dateAcquired'],
+    headers:['Asset ID','Item','Category','Qty','Unit Cost','Total Value','Location','Condition','Acquired'],
+    fields:[
+      {key:'item',label:'Item / Description',type:'text',required:true},
+      {key:'category',label:'Category',type:'select',options:PICKLISTS.assetCategory},
+      {key:'qty',label:'Quantity',type:'number'},
+      {key:'unitCost',label:'Unit Cost',type:'number'},
+      {key:'totalValue',label:'Total Value',type:'number'},
+      {key:'location',label:'Location',type:'text'},
+      {key:'condition',label:'Condition',type:'select',options:PICKLISTS.assetCondition},
+      {key:'dateAcquired',label:'Date Acquired',type:'date'},
+    ]},
+};
+
+// =====================================================================================
+// DEMO STUBS — the real app persists to IndexedDB and syncs to the server here.
+// This demo has neither: everything lives in memory only, resets on reload, and
+// every mutating action is intercepted by demoGuard() before it reaches these.
+// =====================================================================================
+function toast(message, kind){
+  kind = kind || 'info';
+  const host = document.getElementById('toastHost');
+  if(!host){ console.log('[toast]', message); return; }
+  const colors = { info:'var(--teal-800)', success:'#2f7d5a', error:'#b83a3a' };
+  const el = document.createElement('div');
+  el.style.cssText = `background:${colors[kind]||colors.info}; color:#fff; padding:10px 16px; border-radius:9px; font-size:.83rem; box-shadow:0 6px 18px rgba(0,0,0,.25); margin-top:8px; max-width:320px; animation:toastIn .25s ease;`;
+  el.textContent = message;
+  host.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(), 300); }, 4200);
+}
+async function queueChange(){ /* no-op in demo */ }
+async function idbPut(){ /* no-op in demo */ }
+async function idbDeleteRecord(){ /* no-op in demo */ }
+async function idbBulkPut(){ /* no-op in demo */ }
+async function idbClearStore(){ /* no-op in demo */ }
+async function openIDB(){ /* no-op in demo — DB below is pre-seeded, nothing to open */ }
+async function idbGetAll(){ return []; } // no-op in demo — keeps initApp()'s "first time" branch, never overwrites the seeded DB
+async function idbSaveConfig(){ /* no-op in demo */ }
+async function syncNow(interactive){ if(interactive) toast("This is a live demo — there's nothing to sync.", 'info'); }
+async function updateSyncStatusUI(){ /* no sync bar in demo */ }
+
+// =====================================================================================
+// GENERIC MODULE RENDERER  — one function drives every table/form pair above.
+// All add / update / delete operations run against the DB object below and
+// re-render immediately, so every change is reflected across the system at once.
+// =====================================================================================
+
+let activeModule = null;   // module currently open in the modal
+let editingId = null;      // null = adding new record
+
+function statusClass(v){
+  if(!v) return '';
+  return 'badge-' + String(v).toLowerCase().replace(/[^a-z]/g,'');
+}
+
+function fmtCell(val, field){
+  if(field==='budget'||field==='amount'||field==='salary'||field==='unitCost'||field==='totalValue'||
+     field==='budgetUsed'||field==='spent'||field==='amountDue'||field==='amountPaid'||field==='balance'||
+     field==='totalContributed'){
+    return typeof val==='number' ? CCY + val.toLocaleString() : val;
+  }
+  if(field==='pctComplete'){ return val + '%'; }
+  return val ?? '';
+}
+
+function renderModule(key){
+  const s = SCHEMAS[key];
+  const mount = document.getElementById('mount-'+key);
+  mount.innerHTML = `
+    <div class="panel">
+      <div class="table-toolbar">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input class="form-control form-control-sm search-input" placeholder="Search ${s.label.toLowerCase()}..." oninput="filterTable('${key}', this.value)">
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="openFormatGuide('${key}')" title="Column headers &amp; format for import"><i class="bi bi-info-circle me-1"></i>Format Guide</button>
+        <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer;" title="Import from CSV or JSON">
+          <i class="bi bi-upload me-1"></i>Import
+          <input type="file" accept=".csv,.json" style="display:none;" onchange="importModuleFile('${key}', event)">
+        </label>
+        <div class="dropdown" data-role="admin">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download me-1"></i>Export<span class="pro-badge">Pro</span></button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="exportModuleCSV('${key}'); return false;">Export as CSV</a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportModuleJSON('${key}'); return false;">Export as JSON</a></li>
+          </ul>
+        </div>
+        <button class="btn btn-amber btn-sm ms-auto" onclick="openRecordForm('${key}')"><i class="bi bi-plus-lg me-1"></i>Add ${s.label.slice(0,-1) || s.label}</button>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead><tr>${s.headers.map(h=>`<th>${h}</th>`).join('')}<th>Actions</th></tr></thead>
+          <tbody id="tbody-${key}"></tbody>
+        </table>
+      </div>
+      <div class="empty-hint" id="empty-${key}" style="display:none;">No records yet — add one above, or import a CSV/JSON file.</div>
+    </div>`;
+  fillTable(key);
+  applyAccessUI();
+}
+
+function fillTable(key, filterText){
+  const s = SCHEMAS[key];
+  const tbody = document.getElementById('tbody-'+key);
+  let rows = DB[key];
+  if(filterText){
+    const f = filterText.toLowerCase();
+    rows = rows.filter(r => s.columns.some(c => String(r[c]??'').toLowerCase().includes(f)));
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      ${s.columns.map(c => {
+        const raw = r[c];
+        const cell = fmtCell(raw, c);
+        const isStatusish = ['status','condition'].includes(c);
+        return `<td>${isStatusish ? `<span class="badge-status ${statusClass(raw)}">${raw??''}</span>` : cell}</td>`;
+      }).join('')}
+      <td class="row-actions text-nowrap">
+        <button onclick="openRecordForm('${key}','${r.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+        <button class="del" onclick="deleteRecord('${key}','${r.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  const emptyEl = document.getElementById('empty-'+key);
+  emptyEl.style.display = rows.length ? 'none' : 'block';
+  emptyEl.textContent = filterText ? 'No records match your search.' : 'No records yet — add one above, or import a CSV/JSON file.';
+}
+
+function filterTable(key, text){ fillTable(key, text); }
+
+/** Next free sequential id for a module, scanning existing records rather than trusting
+ * the array's current length — length breaks the moment any record has ever been deleted
+ * (or records arrive out of order via import), producing a duplicate id that collides
+ * with one still in use and silently overwrites it. */
+function nextSequentialId(key){
+  const s = SCHEMAS[key];
+  let nextNum = 1;
+  DB[key].forEach(r => {
+    const m = String(r.id).match(new RegExp('^'+s.idPrefix+'-(\\d+)$'));
+    if(m) nextNum = Math.max(nextNum, parseInt(m[1],10)+1);
+  });
+  return `${s.idPrefix}-${String(nextNum).padStart(3,'0')}`;
+}
+
+function openRecordForm(key, id){
+  activeModule = key; editingId = id || null;
+  const s = SCHEMAS[key];
+  const record = id ? DB[key].find(r=>r.id===id) : null;
+  document.getElementById('recordModalTitle').textContent = (id ? 'Edit ' : 'Add ') + s.label.slice(0,-1);
+  document.getElementById('recordFormBody').innerHTML = s.fields.map(f => {
+    const val = record ? (record[f.key] ?? '') : '';
+    if(f.type==='select'){
+      return `<div class="col-md-6">
+        <label class="form-label">${f.label}</label>
+        <select class="form-select" id="fld-${f.key}">
+          ${f.options.map(o=>`<option value="${o}" ${o===val?'selected':''}>${o}</option>`).join('')}
+        </select></div>`;
+    }
+    return `<div class="col-md-6">
+      <label class="form-label">${f.label}${f.required?' *':''}</label>
+      <input type="${f.type}" class="form-control" id="fld-${f.key}" value="${val}">
+      </div>`;
+  }).join('');
+  new bootstrap.Modal(document.getElementById('recordModal')).show();
+}
+
+document.getElementById('recordSaveBtn').addEventListener('click', async () => {
+  const key = activeModule, s = SCHEMAS[key];
+  const data = {};
+  let missing = false;
+  s.fields.forEach(f => {
+    const el = document.getElementById('fld-'+f.key);
+    const v = el.value;
+    if(f.required && !v){ missing = true; el.classList.add('is-invalid'); }
+    data[f.key] = (f.type==='number') ? (v===''? '' : Number(v)) : v;
+  });
+  if(missing){ return; }
+
+  let savedRecord;
+  if(editingId){
+    const idx = DB[key].findIndex(r=>r.id===editingId);
+    DB[key][idx] = {...DB[key][idx], ...data}; // _createdBy stays as-is — ownership never changes on edit
+    savedRecord = DB[key][idx];
+  } else {
+    // server-style sequential ID generation — scans for the max existing suffix rather
+    // than using DB[key].length, which collides after any delete (see nextSequentialId).
+    const newId = nextSequentialId(key);
+    savedRecord = {id:newId, _createdBy: session.userId, ...data};
+    DB[key].push(savedRecord);
+  }
+  await idbPut(key, savedRecord); // persist to local cache
+  await queueChange(key, savedRecord, false); // queue for sync (pushes immediately if online)
+  bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
+  fillTable(key);
+  refreshDashboard();
+  refreshAppInfo();
+});
+
+async function deleteRecord(key, id){
+  if(!confirm('Delete this record? This cannot be undone.')) return;
+  const record = DB[key].find(r=>r.id===id);
+  DB[key] = DB[key].filter(r=>r.id!==id);
+  await idbDeleteRecord(key, id); // remove from local cache
+  if(record) await queueChange(key, record, true); // queue the deletion for sync
+  fillTable(key);
+  refreshDashboard();
+  refreshAppInfo();
+}
+
+// =====================================================================================
+// CSV / JSON IMPORT & EXPORT — per module. Import is available on both tiers (it's
+// just a fast way to add records); Export (CSV/JSON) is Admin-only.
+// =====================================================================================
+function moduleHeaders(key){
+  const s = SCHEMAS[key];
+  return ['id', ...s.columns.filter(c => c !== 'id')];
+}
+
+function csvFromRows(headers, rows){
+  const lines = [headers, ...rows];
+  return lines.map(r => r.map(c => `"${String(c ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+
+function triggerDownload(blob, filename){
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+}
+
+function exportModuleCSV(key){
+  if(!isAdminUser()){ alert('Exporting data is an Admin-only feature.'); return; }
+  const s = SCHEMAS[key];
+  const headers = moduleHeaders(key);
+  const rows = DB[key].map(r => headers.map(h => r[h] ?? ''));
+  const csv = csvFromRows(headers, rows);
+  triggerDownload(new Blob([csv], {type:'text/csv;charset=utf-8;'}), `${s.label.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+function exportModuleJSON(key){
+  if(!isAdminUser()){ alert('Exporting data is an Admin-only feature.'); return; }
+  const s = SCHEMAS[key];
+  triggerDownload(new Blob([JSON.stringify(DB[key], null, 2)], {type:'application/json'}), `${s.label.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`);
+}
+
+async function importModuleFile(key, evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const s = SCHEMAS[key];
+
+  try{
+    const text = await file.text();
+    let records = [];
+    if(file.name.toLowerCase().endsWith('.json')){
+      const parsed = JSON.parse(text);
+      records = Array.isArray(parsed) ? parsed : [];
+    } else {
+      const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+      records = parsed.data;
+    }
+    if(!records.length){ alert('No rows found in this file.'); evt.target.value=''; return; }
+
+    // Find the next free sequential number for this module's ID prefix, so new
+    // imported rows never collide with records already in the system.
+    let nextNum = 1;
+    DB[key].forEach(r => {
+      const m = String(r.id).match(new RegExp('^'+s.idPrefix+'-(\\d+)$'));
+      if(m) nextNum = Math.max(nextNum, parseInt(m[1],10)+1);
+    });
+
+    const touched = [];
+    records.forEach(row => {
+      const data = {};
+      s.fields.forEach(f => {
+        let v = row[f.key];
+        if(v === undefined || v === null) v = '';
+        v = String(v).trim();
+        data[f.key] = (f.type === 'number') ? (v === '' || isNaN(Number(v)) ? '' : Number(v)) : v;
+      });
+      let id = row.id ? String(row.id).trim() : '';
+      if(id){
+        const idx = DB[key].findIndex(r => r.id === id);
+        if(idx > -1){ DB[key][idx] = {...DB[key][idx], ...data}; touched.push(DB[key][idx]); return; }
+      } else {
+        id = `${s.idPrefix}-${String(nextNum).padStart(3,'0')}`;
+        nextNum++;
+      }
+      const rec = {id, _createdBy: session.userId, ...data};
+      DB[key].push(rec);
+      touched.push(rec);
+    });
+
+    await idbBulkPut(key, touched);
+    for(const rec of touched) await queueChange(key, rec, false); // queue each imported/updated row for sync
+    fillTable(key);
+    refreshDashboard();
+    refreshAppInfo();
+    alert(`Imported ${records.length} row(s) into ${s.label}.`);
+  }catch(err){
+    console.error(err);
+    alert('Could not read this file. Check it matches the expected format — see "Format Guide" for this section — and try again.');
+  }
+  evt.target.value = '';
+}
+
+function openFormatGuide(key){
+  const s = SCHEMAS[key];
+  const headers = moduleHeaders(key);
+  document.getElementById('formatModalTitle').textContent = s.label + ' — Import / Export Format';
+  const fieldRows = s.fields.map(f => {
+    let typeDesc = f.type;
+    if(f.type === 'select') typeDesc = 'one of: ' + f.options.join(', ');
+    if(f.type === 'date') typeDesc = 'date, format YYYY-MM-DD';
+    if(f.type === 'number') typeDesc = 'number';
+    if(f.type === 'email') typeDesc = 'email address';
+    if(f.type === 'text') typeDesc = 'text';
+    return `<tr><td><code>${f.key}</code></td><td>${f.label}${f.required?' *':''}</td><td style="font-size:.78rem;">${typeDesc}</td></tr>`;
+  }).join('');
+  document.getElementById('formatModalBody').innerHTML = `
+    <p style="font-size:.85rem;">Your file's column headers (CSV) or object keys (JSON) must match exactly:</p>
+    <div class="mb-2" style="font-size:.8rem; background:#f3efe6; border-radius:6px; padding:8px 10px; word-break:break-all;"><code>${headers.join(', ')}</code></div>
+    <p style="font-size:.82rem; color:var(--ink-soft);"><strong>id</strong> is optional — leave it blank on new rows and one is generated automatically (${s.idPrefix}-001, ${s.idPrefix}-002, ...). Include an existing ${s.idPrefix}-### id to update that record instead of creating a new one.</p>
+    <table class="table table-sm">
+      <thead><tr><th>Column</th><th>Field</th><th>Expected value</th></tr></thead>
+      <tbody>${fieldRows}</tbody>
+    </table>
+    <p style="font-size:.78rem; color:var(--ink-soft); margin-bottom:12px;">CSV: first row must be the header row with the exact names above, values in double quotes if they contain commas. JSON: an array of objects using the same keys.</p>
+    <button class="btn btn-outline-secondary btn-sm" onclick='downloadBlankTemplate(${JSON.stringify(key)})'><i class="bi bi-filetype-csv me-1"></i>Download Blank CSV Template</button>
+    ${isAdminUser() ? '<span class="text-muted ms-2" style="font-size:.78rem;">Or use Export to download a template pre-filled with your current data.</span>' : ''}`;
+  new bootstrap.Modal(document.getElementById('formatModal')).show();
+}
+function downloadBlankTemplate(key){
+  const headers = moduleHeaders(key);
+  const csv = csvFromRows(headers, []);
+  triggerDownload(new Blob([csv], {type:'text/csv;charset=utf-8;'}), `${SCHEMAS[key].label.replace(/\s+/g,'_')}_Template.csv`);
+}
+
+// =====================================================================================
+// NAVIGATION
+// =====================================================================================
+const titles = {
+  dashboard:['Dashboard','Live overview of your organization'],
+  reports:['Reports','Auto-calculated summaries across every module'],
+  settings:['Settings','Organization info and picklists that power every dropdown'],
+  team:['Team & Roles','Create staff accounts, assign roles, and control access'],
+  subscription:['Subscription','Your plan, billing cycle, and trial status'],
+  messages:['Messages','Send announcements or personal messages to members and your team'],
+  manual:['User Manual','Guides for your plan and role — download any time'],
+  account:['My Account','Your profile and password'],
+};
+Object.keys(SCHEMAS).forEach(k => titles[k] = [SCHEMAS[k].title, SCHEMAS[k].sub]);
+
+// ---------------------------------------------------------------- SIDEBAR TOGGLE (mobile/tablet)
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebarBackdrop');
+  const open = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  bd.classList.toggle('show', open);
+}
+
+document.querySelectorAll('.side-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const view = link.dataset.view;
+    if(link.dataset.role === 'admin' && !isAdminUser()){
+      alert((titles[view] ? titles[view][0] : 'This feature') + ' requires Admin access.');
+      return;
+    }
+    document.querySelectorAll('.side-link').forEach(l=>l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+view).classList.add('active');
+    document.getElementById('topbarTitle').textContent = titles[view][0];
+    document.getElementById('topbarSub').textContent = titles[view][1];
+    toggleSidebar(false);
+    if(view==='reports') renderReports();
+    if(view==='team') loadTeam();
+    if(view==='subscription') renderSubscriptionView();
+    if(view==='messages') initMessagesView();
+    if(view==='manual') renderManualView();
+    if(view==='account') populateAccountView();
+  });
+});
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    renderReports();
+  });
+});
+document.querySelector('.side-link[data-view="dashboard"]').classList.add('active');
+
+// =====================================================================================
+// DASHBOARD
+// =====================================================================================
+let chartFinance, chartDept;
+
+function refreshDashboard(){
+  // ---- period-over-period trend helper: this-30-days vs the-30-days-before-that ----
+  const now = new Date();
+  const d30 = new Date(now); d30.setDate(d30.getDate()-30);
+  const d60 = new Date(now); d60.setDate(d60.getDate()-60);
+  function trendPct(dateField, arr){
+    const recent = arr.filter(r => { const d = new Date(r[dateField]); return d >= d30 && d <= now; }).length;
+    const prior  = arr.filter(r => { const d = new Date(r[dateField]); return d >= d60 && d < d30; }).length;
+    if(prior === 0) return recent > 0 ? {pct: 100, up: true} : null;
+    const pct = Math.round(((recent - prior) / prior) * 100);
+    return {pct: Math.abs(pct), up: pct >= 0};
+  }
+  function applyTrend(elId, trend, label){
+    const el = document.getElementById(elId);
+    if(!trend || trend.pct === 0){ el.insertAdjacentHTML('beforeend', ` · <span class="text-muted">steady</span>`); return; }
+    el.insertAdjacentHTML('beforeend', ` · <span class="${trend.up?'trend-up':'trend-down'}"><i class="bi bi-arrow-${trend.up?'up':'down'}-short"></i>${trend.pct}% ${label}</span>`);
+  }
+
+  const activeMembers = DB.members.filter(m=>m.status==='Active').length;
+  document.getElementById('kpiMembers').textContent = DB.members.length;
+  document.getElementById('kpiMembersSub').innerHTML = `${activeMembers} Active · ${DB.members.length-activeMembers} Other`;
+  applyTrend('kpiMembersSub', trendPct('joinDate', DB.members), 'growth');
+
+  const income = DB.finance.filter(f=>f.type==='Income').reduce((a,b)=>a+(b.amount||0),0);
+  const expense = DB.finance.filter(f=>f.type==='Expense').reduce((a,b)=>a+(b.amount||0),0);
+  document.getElementById('kpiBalance').textContent = CCY + (income-expense).toLocaleString();
+  document.getElementById('kpiBalanceSub').innerHTML = `${CCY}${income.toLocaleString()} income`;
+  applyTrend('kpiBalanceSub', trendPct('date', DB.finance.filter(f=>f.type==='Income')), 'vs last month');
+
+  const activeProjects = DB.projects.filter(p=>p.status==='Active').length;
+  document.getElementById('kpiProjects').textContent = activeProjects;
+  document.getElementById('kpiProjectsSub').textContent = `${DB.projects.length} total`;
+
+  const paidFees = DB.fees.filter(f=>f.status==='Paid').length;
+  const rate = DB.fees.length ? Math.round(100*paidFees/DB.fees.length) : 0;
+  document.getElementById('kpiFees').textContent = rate + '%';
+  document.getElementById('kpiFeesSub').textContent = `${paidFees} Paid · ${DB.fees.length-paidFees} Other`;
+
+  const upcoming = DB.events.filter(e=>['Upcoming','Planning'].includes(e.status)).length;
+  document.getElementById('kpiEvents').textContent = upcoming;
+  document.getElementById('kpiEventsSub').textContent = `${DB.events.length} total events`;
+
+  const activeVols = DB.volunteers.filter(v=>v.status==='Active').length;
+  document.getElementById('kpiVols').textContent = activeVols;
+  document.getElementById('kpiVolsSub').textContent = `${DB.volunteers.length} total`;
+
+  const totalDonations = DB.donors.reduce((a,b)=>a+(b.totalContributed||0),0);
+  document.getElementById('kpiDonations').textContent = CCY + totalDonations.toLocaleString();
+  document.getElementById('kpiDonationsSub').textContent = `${DB.donors.length} donors`;
+
+  const totalGrants = DB.finance.filter(f=>f.category==='Grants').reduce((a,b)=>a+(b.amount||0),0);
+  document.getElementById('kpiGrants').textContent = CCY + totalGrants.toLocaleString();
+  document.getElementById('kpiGrantsSub').textContent = 'all-time, from Finance Ledger';
+
+  document.getElementById('dashEvents').innerHTML = DB.events.slice(0,5).map(e=>`
+    <div class="insight-row border-bottom py-2">
+      <div><strong>${e.name}</strong><div class="text-muted" style="font-size:.78rem;">${e.startDate} · ${e.venue}</div></div>
+      <span class="badge-status ${statusClass(e.status)}">${e.status}</span>
+    </div>`).join('');
+
+  document.getElementById('dashProjects').innerHTML = DB.projects.filter(p=>p.status==='Active').slice(0,5).map(p=>`
+    <div class="py-2 border-bottom">
+      <div class="insight-row"><strong>${p.name}</strong><span>${p.pctComplete}%</span></div>
+      <div class="progress" style="height:6px;"><div class="progress-bar" style="width:${p.pctComplete}%; background:var(--teal-700);"></div></div>
+    </div>`).join('');
+
+  // charts
+  const finCtx = document.getElementById('chartFinance');
+  if(chartFinance) chartFinance.destroy();
+  chartFinance = new Chart(finCtx, {type:'doughnut', data:{labels:['Income','Expenses'], datasets:[{data:[income,expense], backgroundColor:['#26866d','#c98a1f']}]}, options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}}}});
+
+  const deptCounts = {};
+  DB.members.forEach(m=>{ deptCounts[m.department] = (deptCounts[m.department]||0)+1; });
+  const deptCtx = document.getElementById('chartDept');
+  if(chartDept) chartDept.destroy();
+  chartDept = new Chart(deptCtx, {type:'bar', data:{labels:Object.keys(deptCounts), datasets:[{data:Object.values(deptCounts), backgroundColor:'#155245'}]}, options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+
+// =====================================================================================
+// REPORTS — weekly / monthly / yearly / all-time, with deeper insights + CSV/print export
+// All figures below are calculated live from the current data for the selected period.
+// =====================================================================================
+let currentPeriod = 'all';
+const TODAY = new Date();   // always the device's current date/time — periods are computed live
+
+function periodRange(period){
+  const end = new Date(TODAY);
+  const start = new Date(TODAY);
+  if(period==='today') start.setHours(0,0,0,0);
+  else if(period==='week')  start.setDate(start.getDate()-7);
+  else if(period==='month') start.setDate(start.getDate()-30);
+  else if(period==='quarter') start.setDate(start.getDate()-91);
+  else if(period==='year')  start.setDate(start.getDate()-365);
+  else return null; // all time
+  return {start, end};
+}
+function inRange(dateStr, range){
+  if(!range) return true;
+  if(!dateStr) return false;
+  const d = new Date(dateStr);
+  return d >= range.start && d <= range.end;
+}
+let chartRepMembers, chartRepFinCat;
+
+function renderReports(){
+  const range = periodRange(currentPeriod);
+  const periodLabel = {today:'Today', week:'This Week', month:'This Month', quarter:'This Quarter', year:'This Year', all:'All Time'}[currentPeriod];
+  document.getElementById('periodRangeLabel').textContent = range
+    ? `${range.start.toLocaleDateString()} – ${range.end.toLocaleDateString()}`
+    : 'Full history — every record in the system';
+
+  // ---- print letterhead (visible only when printing — see @media print) ----
+  document.getElementById('printOrgName').textContent = CONFIG.orgName;
+  document.getElementById('printMeta').textContent = `${periodLabel} · Generated ${new Date().toLocaleString()}`;
+  const printLogo = document.getElementById('printLogo');
+  if(CONFIG.orgLogo){ printLogo.src = CONFIG.orgLogo; printLogo.style.display = 'block'; }
+  else printLogo.style.display = 'none';
+
+  // ---- filtered slices for the period ----
+  const fin   = DB.finance.filter(f=>inRange(f.date, range));
+  const evts  = DB.events.filter(e=>inRange(e.startDate, range));
+  const att   = DB.attendance.filter(a=>inRange(a.date, range));
+  const newMembers = DB.members.filter(m=>inRange(m.joinDate, range));
+  const donorsInRange = DB.donors.filter(d=>inRange(d.lastDonation, range));
+
+  const income = fin.filter(f=>f.type==='Income').reduce((a,b)=>a+(b.amount||0),0);
+  const expense = fin.filter(f=>f.type==='Expense').reduce((a,b)=>a+(b.amount||0),0);
+  const grants = fin.filter(f=>f.category==='Grants').reduce((a,b)=>a+(b.amount||0),0);
+  const donations = fin.filter(f=>f.category==='Donations').reduce((a,b)=>a+(b.amount||0),0);
+  const feesCollected = fin.filter(f=>f.category==='Membership Fees').reduce((a,b)=>a+(b.amount||0),0);
+
+  // ---- headline KPI strip ----
+  document.getElementById('repHeadlineRow').innerHTML = [
+    ['New Members', newMembers.length, `${periodLabel}`],
+    ['Net Income', CCY+(income-expense).toLocaleString(), `${CCY}${income.toLocaleString()} in · ${CCY}${expense.toLocaleString()} out`],
+    ['Events Held', evts.length, `${att.length} attendance records`],
+    ['Grants + Donations', CCY+(grants+donations).toLocaleString(), `${donorsInRange.length} donors active`],
+  ].map(([label,val,sub])=>`
+    <div class="col-6 col-md-3"><div class="stat-card">
+      <div class="stat-label">${label}</div><div class="stat-num">${val}</div><div class="stat-sub">${sub}</div>
+    </div></div>`).join('');
+
+  // ---- Membership insights ----
+  const activeMembers = DB.members.filter(m=>m.status==='Active').length;
+  const byDept = {};
+  DB.members.forEach(m=>{ byDept[m.department] = (byDept[m.department]||0)+1; });
+  document.getElementById('repMembership').innerHTML = `
+    <tr><td>Total Members (all-time)</td><td class="text-end">${DB.members.length}</td></tr>
+    <tr><td>Active / Inactive</td><td class="text-end">${activeMembers} / ${DB.members.length-activeMembers}</td></tr>
+    <tr><td>New Members — ${periodLabel}</td><td class="text-end">${newMembers.length}</td></tr>
+    <tr><td>Departments</td><td class="text-end">${DB.departments.length}</td></tr>`;
+  if(chartRepMembers) chartRepMembers.destroy();
+  chartRepMembers = new Chart(document.getElementById('chartRepMembers'), {
+    type:'bar', data:{labels:Object.keys(byDept), datasets:[{data:Object.values(byDept), backgroundColor:'#155245'}]},
+    options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+
+  // ---- Financial insights ----
+  document.getElementById('repFinance').innerHTML = `
+    <tr><td>Income — ${periodLabel}</td><td class="text-end">${CCY}${income.toLocaleString()}</td></tr>
+    <tr><td>Expenses — ${periodLabel}</td><td class="text-end">${CCY}${expense.toLocaleString()}</td></tr>
+    <tr><td>Net Balance — ${periodLabel}</td><td class="text-end">${CCY}${(income-expense).toLocaleString()}</td></tr>
+    <tr><td>Grants</td><td class="text-end">${CCY}${grants.toLocaleString()}</td></tr>
+    <tr><td>Donations</td><td class="text-end">${CCY}${donations.toLocaleString()}</td></tr>
+    <tr><td>Membership Fees Collected</td><td class="text-end">${CCY}${feesCollected.toLocaleString()}</td></tr>`;
+  const catTotals = {};
+  fin.forEach(f=>{ catTotals[f.category] = (catTotals[f.category]||0) + f.amount; });
+  if(chartRepFinCat) chartRepFinCat.destroy();
+  chartRepFinCat = new Chart(document.getElementById('chartRepFinanceCat'), {
+    type:'doughnut', data:{labels:Object.keys(catTotals), datasets:[{data:Object.values(catTotals),
+      backgroundColor:['#26866d','#c98a1f','#1c6b58','#e2a336','#0a2e28','#b5473a','#5b6663']}]},
+    options:{plugins:{legend:{position:'bottom', labels:{boxWidth:9,font:{size:10}}}}}});
+
+  // ---- Project & budget insights ----
+  const totalBudget = DB.projects.reduce((a,p)=>a+(p.budget||0),0);
+  const totalSpent = DB.projects.reduce((a,p)=>a+(p.spent||0),0);
+  const utilization = totalBudget ? Math.round(100*totalSpent/totalBudget) : 0;
+  document.getElementById('repProjects').innerHTML = `
+    <tr><td>Total Projects</td><td class="text-end">${DB.projects.length}</td></tr>
+    <tr><td>Active / Completed / Planning</td><td class="text-end">${DB.projects.filter(p=>p.status==='Active').length} / ${DB.projects.filter(p=>p.status==='Completed').length} / ${DB.projects.filter(p=>p.status==='Planning').length}</td></tr>
+    <tr><td>Total Budget</td><td class="text-end">${CCY}${totalBudget.toLocaleString()}</td></tr>
+    <tr><td>Total Spent</td><td class="text-end">${CCY}${totalSpent.toLocaleString()}</td></tr>
+    <tr><td>Overall Budget Utilization</td><td class="text-end">${utilization}%</td></tr>`;
+  const atRisk = DB.projects.filter(p=>p.budget && (p.spent/p.budget)>0.8 && p.status!=='Completed');
+  document.getElementById('repAtRisk').innerHTML = atRisk.length
+    ? atRisk.map(p=>`<div class="insight-row border-bottom py-1" style="font-size:.82rem;">
+        <span>${p.name}</span><span>${Math.round(100*p.spent/p.budget)}% spent</span></div>`).join('')
+    : `<div class="text-muted" style="font-size:.82rem;">No at-risk projects.</div>`;
+
+  // ---- Volunteers & outreach insights ----
+  const beneficiaries = DB.outreach.reduce((a,o)=>a+(o.beneficiaries||0),0);
+  const hoursServed = DB.volunteers.reduce((a,v)=>a+(v.hrsServed||0),0);
+  const hoursCommitted = DB.volunteers.reduce((a,v)=>a+(v.hrsCommitted||0),0);
+  document.getElementById('repOutreach').innerHTML = `
+    <tr><td>Active Volunteers</td><td class="text-end">${DB.volunteers.filter(v=>v.status==='Active').length} / ${DB.volunteers.length}</td></tr>
+    <tr><td>Hours Served / Committed</td><td class="text-end">${hoursServed} / ${hoursCommitted}</td></tr>
+    <tr><td>Volunteer Completion Rate</td><td class="text-end">${hoursCommitted?Math.round(100*hoursServed/hoursCommitted):0}%</td></tr>
+    <tr><td>Outreach Programs</td><td class="text-end">${DB.outreach.length}</td></tr>
+    <tr><td>Total Beneficiaries Reached</td><td class="text-end">${beneficiaries.toLocaleString()}</td></tr>`;
+
+  // ---- HR & payroll insights ----
+  const payroll = DB.staff.reduce((a,s)=>a+(s.salary||0),0);
+  const avgPerf = DB.staff.length ? (DB.staff.reduce((a,s)=>a+(s.perfScore||0),0)/DB.staff.length).toFixed(1) : 0;
+  document.getElementById('repHR').innerHTML = `
+    <tr><td>Total Staff</td><td class="text-end">${DB.staff.length}</td></tr>
+    <tr><td>Active Staff</td><td class="text-end">${DB.staff.filter(s=>s.status==='Active').length}</td></tr>
+    <tr><td>Monthly Payroll</td><td class="text-end">${CCY}${payroll.toLocaleString()}</td></tr>
+    <tr><td>Average Performance Score</td><td class="text-end">${avgPerf} / 5</td></tr>`;
+
+  // ---- Fundraising & donors insights ----
+  const totalContrib = DB.donors.reduce((a,d)=>a+(d.totalContributed||0),0);
+  const avgDonation = DB.donors.length ? Math.round(totalContrib/DB.donors.length) : 0;
+  document.getElementById('repDonors').innerHTML = `
+    <tr><td>Total Donors / Partners</td><td class="text-end">${DB.donors.length}</td></tr>
+    <tr><td>Total Contributed (all-time)</td><td class="text-end">${CCY}${totalContrib.toLocaleString()}</td></tr>
+    <tr><td>Average Donation</td><td class="text-end">${CCY}${avgDonation.toLocaleString()}</td></tr>
+    <tr><td>Donors Active — ${periodLabel}</td><td class="text-end">${donorsInRange.length}</td></tr>`;
+  const topDonors = [...DB.donors].sort((a,b)=>(b.totalContributed||0)-(a.totalContributed||0)).slice(0,5);
+  document.getElementById('repTopDonors').innerHTML = topDonors.map(d=>`
+    <div class="insight-row border-bottom py-1" style="font-size:.82rem;">
+      <span>${d.name}</span><span>${CCY}${(d.totalContributed||0).toLocaleString()}</span></div>`).join('');
+
+  // ---- Events & attendance insights ----
+  const presentCount = att.filter(a=>a.status==='Present').length;
+  const attRate = att.length ? Math.round(100*presentCount/att.length) : 0;
+  document.getElementById('repEvents').innerHTML = `
+    <tr><td>Events — ${periodLabel}</td><td class="text-end">${evts.length}</td></tr>
+    <tr><td>Total Events (all-time)</td><td class="text-end">${DB.events.length}</td></tr>
+    <tr><td>Attendance Records — ${periodLabel}</td><td class="text-end">${att.length}</td></tr>
+    <tr><td>Attendance Rate — ${periodLabel}</td><td class="text-end">${attRate}%</td></tr>`;
+
+  // ---- Assets insights ----
+  const assetValue = DB.assets.reduce((a,x)=>a+(x.totalValue||0),0);
+  const assetByCat = {};
+  DB.assets.forEach(x=>{ assetByCat[x.category] = (assetByCat[x.category]||0)+(x.totalValue||0); });
+  const topCat = Object.entries(assetByCat).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('repAssets').innerHTML = `
+    <tr><td>Total Asset Items</td><td class="text-end">${DB.assets.length}</td></tr>
+    <tr><td>Total Asset Value</td><td class="text-end">${CCY}${assetValue.toLocaleString()}</td></tr>
+    <tr><td>Highest-Value Category</td><td class="text-end">${topCat ? topCat[0]+' (₦'+topCat[1].toLocaleString()+')' : '—'}</td></tr>
+    <tr><td>Items Needing Attention (Fair/Poor)</td><td class="text-end">${DB.assets.filter(a=>['Fair','Poor'].includes(a.condition)).length}</td></tr>`;
+}
+
+// ---- CSV export of the currently selected report period ----
+function downloadReportCSV(){
+  if(!isAdminUser()){ alert('Exporting reports is an Admin-only feature.'); return; }
+  const range = periodRange(currentPeriod);
+  const periodLabel = {today:'Today', week:'This Week', month:'This Month', quarter:'This Quarter', year:'This Year', all:'All Time'}[currentPeriod];
+  const fin = DB.finance.filter(f=>inRange(f.date, range));
+  const income = fin.filter(f=>f.type==='Income').reduce((a,b)=>a+(b.amount||0),0);
+  const expense = fin.filter(f=>f.type==='Expense').reduce((a,b)=>a+(b.amount||0),0);
+  const newMembers = DB.members.filter(m=>inRange(m.joinDate, range)).length;
+  const evts = DB.events.filter(e=>inRange(e.startDate, range)).length;
+  const att = DB.attendance.filter(a=>inRange(a.date, range));
+  const presentCount = att.filter(a=>a.status==='Present').length;
+
+  let rows = [
+    [CONFIG.orgName + ' — Management Report'],
+    ['Period', periodLabel],
+    ['Generated', new Date().toLocaleString()],
+    [],
+    ['Metric','Value'],
+    ['New Members', newMembers],
+    ['Income', income],
+    ['Expenses', expense],
+    ['Net Balance', income-expense],
+    ['Events Held', evts],
+    ['Attendance Records', att.length],
+    ['Attendance Rate (%)', att.length ? Math.round(100*presentCount/att.length) : 0],
+    ['Total Members (all-time)', DB.members.length],
+    ['Total Projects (all-time)', DB.projects.length],
+    ['Total Donors (all-time)', DB.donors.length],
+    ['Total Staff (all-time)', DB.staff.length],
+    ['Total Asset Value (all-time)', DB.assets.reduce((a,x)=>a+(x.totalValue||0),0)],
+    [],
+    ['-- Finance records in this period --'],
+    ['ID','Type','Date','Category','Amount','Description','Department','Status'],
+    ...fin.map(f=>[f.id,f.type,f.date,f.category,f.amount,f.description,f.department,f.status]),
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `Organization_Report_${currentPeriod}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link); link.click(); link.remove();
+}
+
+// ---- Print report (Professional only) ----
+function printReport(){
+  if(!isAdminUser()){ alert('Printing reports is an Admin-only feature.'); return; }
+  window.print();
+}
+
+// =====================================================================================
+// BACKUP & RESTORE (Admin only) — a portable JSON snapshot of this org's data, on top
+// of the automatic server sync. Useful as a personal backup or for moving data around.
+// =====================================================================================
+function downloadBackup(){
+  if(!isAdminUser()){ alert('Backup & Restore is an Admin-only feature.'); return; }
+  const payload = {
+    app: 'OKV Organization Management System',
+    exportedAt: new Date().toISOString(),
+    orgId: session.orgId,
+    orgName: session.orgName,
+    config: CONFIG,
+    data: {}
+  };
+  Object.keys(SCHEMAS).forEach(k => { payload.data[k] = DB[k]; });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${(CONFIG.orgName||'Organization').replace(/[^a-z0-9]+/gi,'_')}_backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(link); link.click(); link.remove();
+}
+
+function downloadBackupCSV(){
+  if(!isAdminUser()){ alert('Backup & Restore is an Admin-only feature.'); return; }
+  const stamp = new Date().toISOString().slice(0,10);
+  const orgSlug = (CONFIG.orgName||'Organization').replace(/[^a-z0-9]+/gi,'_');
+  const keys = Object.keys(SCHEMAS);
+  keys.forEach((key, i) => {
+    setTimeout(() => {
+      const headers = moduleHeaders(key);
+      const rows = DB[key].map(r => headers.map(h => r[h] ?? ''));
+      const csv = csvFromRows(headers, rows);
+      triggerDownload(new Blob([csv], {type:'text/csv;charset=utf-8;'}), `${orgSlug}_${SCHEMAS[key].label.replace(/\s+/g,'_')}_${stamp}.csv`);
+    }, i * 250);
+  });
+  const note = document.getElementById('backupNote');
+  note.textContent = `Downloading ${keys.length} CSV files, one per module...`;
+  setTimeout(() => { note.textContent = ''; }, keys.length*250 + 1500);
+}
+
+async function restoreBackup(evt){
+  const note = document.getElementById('backupNote');
+  if(!isAdminUser()){ alert('Backup & Restore is an Admin-only feature.'); evt.target.value=''; return; }
+  const file = evt.target.files[0];
+  if(!file) return;
+  if(!confirm('Restoring will replace ALL current data on this device with the contents of this backup file. This cannot be undone. Continue?')){
+    evt.target.value = '';
+    return;
+  }
+  try{
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    if(!payload || !payload.data) throw new Error('Not a valid backup file');
+
+    for(const key of Object.keys(SCHEMAS)){
+      const rows = Array.isArray(payload.data[key]) ? payload.data[key] : [];
+      DB[key] = rows;
+      await idbClearStore(key);
+      if(rows.length) await idbBulkPut(key, rows);
+      for(const rec of rows) await queueChange(key, rec, false); // queue restored rows so they sync back up too
+    }
+    if(payload.config){
+      Object.assign(CONFIG, payload.config);
+      await idbSaveConfig();
+      CCY = CONFIG.ccySymbol;
+      populateSettingsFields();
+    }
+
+    syncOrgUI();
+    Object.keys(SCHEMAS).forEach(k => fillTable(k));
+    refreshDashboard();
+    refreshAppInfo();
+    if(document.getElementById('view-reports').classList.contains('active')) renderReports();
+
+    note.textContent = 'Restored — data reloaded across the system.';
+  }catch(err){
+    note.textContent = '';
+    alert('Could not read this backup file. Please check the file and try again.');
+  }
+  evt.target.value = '';
+  setTimeout(()=>{ note.textContent=''; }, 3000);
+}
+
+// ---- Settings → App Info panel ----
+function refreshAppInfo(){
+  const label = document.getElementById('recordCountLabel');
+  if(!label) return;
+  const total = Object.keys(SCHEMAS).reduce((a,k)=> a + (DB[k]?.length||0), 0);
+  label.textContent = total.toLocaleString();
+}
+
+function populateSettingsFields(){
+  document.getElementById('setOrgName').value = CONFIG.orgName;
+  document.getElementById('setOrgType').value = CONFIG.orgType;
+  document.getElementById('setOrgReg').value = CONFIG.orgReg;
+  document.getElementById('setCcySymbol').value = CONFIG.ccySymbol;
+  document.getElementById('setCcyName').value = CONFIG.ccyName;
+  document.getElementById('setOrgFY').value = CONFIG.financialYear;
+  document.getElementById('setOrgDF').value = CONFIG.dateFormat;
+}
+
+// =====================================================================================
+// SETTINGS — picklists
+// =====================================================================================
+document.getElementById('picklistRow').innerHTML = Object.entries(PICKLISTS).map(([name, list]) => `
+  <div class="col-md-4 mb-3">
+    <div style="font-size:.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;">${name.replace(/([A-Z])/g,' $1')}</div>
+    ${list.map(v=>`<span class="badge rounded-pill text-bg-light border me-1 mb-1" style="font-weight:500;">${v}</span>`).join('')}
+  </div>`).join('');
+
+// =====================================================================================
+// TEAM & ROLES (admin only) — create/edit/delete Users, assign roles, activate/suspend,
+// set a User's password directly. All of this talks straight to the server (Users
+// live in the Users sheet, not the offline Data sync) so it requires connectivity.
+// =====================================================================================
+const ROLE_OPTIONS = [
+  'Organization Super Admin',
+  'Executive Director / Organization Head',
+  'Operations Manager',
+  'HR / Staff Manager',
+  'Program / Project Officer',
+  'Finance Officer / Accountant',
+  'Asset / Administrative Officer',
+  'Staff / Data Entry Officer'
+];
+let teamCache = [];
+
+function roleCheckboxes(containerId, checkedRoles){
+  checkedRoles = checkedRoles || [];
+  return ROLE_OPTIONS.map((r, i) => `
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" value="${r}" id="${containerId}-${i}" ${checkedRoles.includes(r) ? 'checked' : ''}>
+      <label class="form-check-label" for="${containerId}-${i}" style="font-size:.85rem;">${r}</label>
+    </div>`).join('');
+}
+function readCheckedRoles(containerId){
+  return ROLE_OPTIONS.filter((r, i) => document.getElementById(`${containerId}-${i}`)?.checked);
+}
+
+async function loadTeam(){
+  // Demo: static sample team instead of a real API call.
+  document.getElementById('teamOfflineNote').style.display = 'none';
+  teamCache = [
+    { id:'demo-admin', username:'demo@okvdemo.test', roles:['Organization Super Admin'], isOwner:true, status:'active', subscriptionStatus:'trialing' },
+    { id:'demo-u1', username:'grace.o@riverside.test', roles:['Program / Project Officer','HR / Staff Manager'], isOwner:false, status:'active', subscriptionStatus:'trialing' },
+    { id:'demo-u2', username:'daniel.k@riverside.test', roles:['Finance Officer / Accountant'], isOwner:false, status:'active', subscriptionStatus:'trialing' },
+    { id:'demo-u3', username:'amara.n@riverside.test', roles:['Asset / Administrative Officer'], isOwner:false, status:'suspended', subscriptionStatus:'trialing' }
+  ];
+  renderTeamTable();
+}
+
+function renderTeamTable(){
+  const tbody = document.getElementById('tbody-team');
+  const emptyEl = document.getElementById('empty-team');
+  emptyEl.style.display = teamCache.length ? 'none' : 'block';
+  tbody.innerHTML = teamCache.map(u => `
+    <tr>
+      <td>${u.username}${u.isOwner ? ' <span class="pro-badge">Admin</span>' : ''}</td>
+      <td>${(u.roles||[]).map(r=>`<span class="badge rounded-pill text-bg-light border me-1 mb-1" style="font-size:.68rem; font-weight:500;">${r}</span>`).join('') || '<span class="text-muted">—</span>'}</td>
+      <td><span class="badge-status ${u.status==='active' ? 'badge-active' : 'badge-suspended'}">${u.status}</span></td>
+      <td><span class="badge-status ${u.subscriptionStatus==='active' ? 'badge-active' : 'badge-suspended'}">${u.subscriptionStatus}</span></td>
+      <td class="row-actions text-nowrap">
+        <button onclick="openEditRolesModal('${u.id}')" title="Edit roles"><i class="bi bi-person-gear"></i></button>
+        <button onclick="openSetPasswordModal('${u.id}')" title="Set password"><i class="bi bi-key"></i></button>
+        ${u.isOwner ? '' : `
+          <button onclick="toggleUserStatus('${u.id}','${u.status==='active'?'suspended':'active'}')" title="${u.status==='active'?'Suspend':'Activate'}">
+            <i class="bi ${u.status==='active' ? 'bi-slash-circle' : 'bi-check-circle'}"></i>
+          </button>
+          <button class="del" onclick="deleteUserRow('${u.id}')" title="Delete"><i class="bi bi-trash"></i></button>`}
+      </td>
+    </tr>`).join('');
+}
+
+function openAddUserModal(){
+  document.getElementById('newUserUsername').value = '';
+  document.getElementById('newUserPassword').value = '';
+  document.getElementById('newUserRoles').innerHTML = roleCheckboxes('newUserRoles');
+  document.getElementById('addUserMsg').textContent = '';
+  new bootstrap.Modal(document.getElementById('addUserModal')).show();
+}
+async function submitAddUser(){ demoGuard(); bootstrap.Modal.getInstance(document.getElementById('addUserModal'))?.hide(); }
+
+let editingRolesUserId = null;
+function openEditRolesModal(userId){
+  const u = teamCache.find(x => x.id === userId);
+  if(!u) return;
+  editingRolesUserId = userId;
+  document.getElementById('editRolesUsername').textContent = u.username;
+  document.getElementById('editRolesList').innerHTML = roleCheckboxes('editRolesList', u.roles);
+  document.getElementById('editRolesMsg').textContent = '';
+  new bootstrap.Modal(document.getElementById('editRolesModal')).show();
+}
+async function saveUserRoles(){ demoGuard(); bootstrap.Modal.getInstance(document.getElementById('editRolesModal'))?.hide(); }
+
+let settingPasswordUserId = null;
+function openSetPasswordModal(userId){
+  const u = teamCache.find(x => x.id === userId);
+  if(!u) return;
+  settingPasswordUserId = userId;
+  document.getElementById('setPasswordUsername').textContent = u.username;
+  document.getElementById('setPasswordValue').value = '';
+  document.getElementById('setPasswordMsg').textContent = '';
+  new bootstrap.Modal(document.getElementById('setPasswordModal')).show();
+}
+async function saveUserPassword(){ demoGuard(); bootstrap.Modal.getInstance(document.getElementById('setPasswordModal'))?.hide(); }
+
+async function toggleUserStatus(userId, newStatus){ demoGuard(); }
+async function deleteUserRow(userId){ demoGuard(); }
+
+
+// =====================================================================================
+// MY ACCOUNT — change password (Admin or User, from their own dashboard)
+// =====================================================================================
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(demoGuard()) return;
+  const note = document.getElementById('cpNote');
+  const btn = document.getElementById('cpSubmitBtn');
+  const current = document.getElementById('cpCurrent').value;
+  const next = document.getElementById('cpNew').value;
+  const confirmVal = document.getElementById('cpConfirm').value;
+  note.className = ''; note.textContent = '';
+
+  if(next !== confirmVal){ note.className='text-danger'; note.textContent='New passwords do not match.'; return; }
+  if(!navigator.onLine){ note.className='text-danger'; note.textContent='Reconnect to the internet to change your password.'; return; }
+
+  btn.disabled = true;
+  try{
+    const oldPasswordHash = await sha256Hex(current);
+    const newPasswordHash = await sha256Hex(next);
+    const res = await apiCall('changePassword', {...authFields(session), oldPasswordHash, newPasswordHash});
+    if(!res.success){ note.className='text-danger'; note.textContent = res.error || 'Could not change password.'; btn.disabled=false; return; }
+    // Keep the cached session's password hash in sync — it's used to authenticate every
+    // subsequent API call, so this must update immediately or the next action will fail.
+    session.passwordHash = newPasswordHash;
+    setSession(session);
+    document.getElementById('changePasswordForm').reset();
+    note.className = 'text-success'; note.textContent = 'Password updated.';
+  }catch(err){
+    note.className = 'text-danger'; note.textContent = 'Something went wrong. Please try again.';
+  }
+  btn.disabled = false;
+});
+
+// =====================================================================================
+// NOTIFICATIONS — in-app toasts always fire (see syncNow); this adds an OS-level
+// notification too, but only once permission is granted and only when the tab isn't
+// in the foreground (so it doesn't double up with the toast you're already looking at).
+// =====================================================================================
+function enableSyncNotifications(){
+  if(!('Notification' in window)){ toast('Notifications are not supported in this browser.', 'error'); return; }
+  if(Notification.permission === 'granted'){ toast('Sync notifications are already on.', 'success'); return; }
+  Notification.requestPermission().then(perm => {
+    toast(perm === 'granted' ? 'Sync notifications enabled.' : 'Notifications were not enabled.', perm === 'granted' ? 'success' : 'error');
+  });
+}
+function notifyIfHidden(title, body){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if(!document.hidden) return; // already covered by the in-app toast
+  try{ new Notification(title, {body, icon:'icons/icon-192.png'}); }catch(e){}
+}
+
+// =====================================================================================
+// INIT — loads (or seeds) IndexedDB, then boots the UI. Everything below only
+// runs after the on-device database is ready, so the app never shows stale or
+// half-loaded data.
+// =====================================================================================
+function tickClock(){
+  document.getElementById('clockLine').textContent = new Date().toLocaleString('en-US', {weekday:'short', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
+async function initApp(){
+  try{
+    await openIDB();
+    const metaRows = await idbGetAll('meta');
+    const meta = {};
+    metaRows.forEach(m => meta[m.key] = m.value);
+
+    if(meta.seeded){
+      // Returning session on this device — load the last-synced local cache immediately
+      // (works fully offline), then reconcile with the server in the background below.
+      for(const key of Object.keys(SCHEMAS)){
+        const rows = await idbGetAll(key);
+        DB[key] = rows;
+      }
+      if(meta.config) Object.assign(CONFIG, meta.config);
+    } else {
+      // First time this org/device combination has opened the app — seed realistic
+      // sample data so the live demo shows a populated organization, not an empty
+      // dashboard, then mark it initialized so future loads read from IndexedDB.
+      seedDemoSampleData();
+      await idbSaveConfig();
+      await idbPut('meta', {key:'seeded', value:true});
+    }
+  }catch(err){
+    console.error('IndexedDB init failed — running from an empty in-memory dataset only:', err);
+  }
+
+  CCY = CONFIG.ccySymbol;
+  populateSettingsFields();
+  syncOrgUI();
+  applyAccessUI();
+  Object.keys(SCHEMAS).forEach(renderModule);
+  refreshDashboard();
+  refreshAppInfo();
+  updateSyncStatusUI();
+  updateSubscriptionBadges();
+  setInterval(updateSubscriptionBadges, 300000); // refresh the countdown every 5 minutes
+  tickClock(); setInterval(tickClock, 30000);
+
+  // ---------------------------------------------------------------- LOADING SCREEN
+  document.getElementById('loadScreen').classList.add('hide');
+
+  // Pull the latest from the server right away (also catches a suspended/deactivated
+  // account or an expired org subscription and logs the device out).
+  if(navigator.onLine) syncNow(false);
+}
+
+window.addEventListener('load', () => { initApp(); });
+
+// ---------------------------------------------------------------- SERVICE WORKER (offline caching)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>

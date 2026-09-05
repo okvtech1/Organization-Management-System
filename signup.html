@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Your Account — OKV Organization Management System</title>
+<meta name="description" content="Start your free 7-day OKV OMS trial — no card required. Set up your organization's dashboard for members, finance, events and more in under a minute.">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{ --teal-950:#0a2420; --teal-800:#134a3d; --gold-500:#d6a13d; --gold-600:#b8862a; --ink:#1c2321; --ink-soft:#647069; }
+*{box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif; color:var(--ink); margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%, #133c33 0%, var(--teal-950) 55%, #071915 100%);}
+h1{font-family:'Sora',sans-serif;}
+.card-box{background:#fff; border-radius:18px; max-width:460px; width:100%; padding:32px 28px; box-shadow:0 30px 70px rgba(0,0,0,.4);}
+.brand-mark{width:52px; height:52px; border-radius:14px; margin:0 auto 14px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600));
+  color:var(--teal-950); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:.95rem; letter-spacing:-.2px;}
+.card-box h1{font-size:1.2rem; font-weight:800; text-align:center; margin-bottom:4px;}
+.card-box p.sub{font-size:.83rem; color:var(--ink-soft); text-align:center; margin-bottom:18px;}
+.btn-teal{background:var(--teal-800); border-color:var(--teal-800); color:#fff;}
+.btn-teal:hover{background:#0e352e; border-color:#0e352e; color:#fff;}
+.form-label{font-size:.82rem; font-weight:600;}
+#msg{font-size:.83rem; margin-top:10px;}
+.hint{font-size:.74rem; color:var(--ink-soft); margin-top:4px;}
+.plan-banner{background:#f3efe6; border:1px dashed #e7e3d9; border-radius:10px; padding:12px 14px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.plan-banner .name{font-size:.9rem; font-weight:800; color:var(--teal-900);}
+.plan-banner .cycle{font-size:.74rem; color:var(--ink-soft); text-transform:capitalize;}
+.plan-banner a{font-size:.75rem; font-weight:700; color:var(--teal-800);}
+.trial-note{font-size:.76rem; color:var(--ink-soft); text-align:center; margin-top:14px;}
+.btns-row{display:flex; gap:10px;}
+.btns-row .btn-outline-secondary{flex:0 0 auto;}
+.btns-row #submitBtn{flex:1;}
+</style>
+</head>
+<body>
+<div class="card-box">
+  <div class="brand-mark">OKV</div>
+  <h1>Create Your Account</h1>
+  <p class="sub">Sets you up as the Admin — you'll manage your team and their access from your dashboard.</p>
+
+  <div class="plan-banner" id="planBanner" style="display:none;">
+    <div>
+      <div class="name" id="planBannerName"></div>
+      <div class="cycle" id="planBannerCycle"></div>
+    </div>
+    <a href="pricing.html">Change plan</a>
+  </div>
+
+  <form id="signupForm">
+    <div class="mb-3">
+      <label class="form-label">Organization / Business Name</label>
+      <input type="text" class="form-control" id="orgName" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Full Name</label>
+      <input type="text" class="form-control" id="fullName" required autocomplete="name">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" id="username" required autocomplete="username">
+      <div class="hint">Used to log in and to receive your account and password-reset emails.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Phone Number</label>
+      <input type="tel" class="form-control" id="phone" required autocomplete="tel">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" required minlength="8" autocomplete="new-password">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Confirm Password</label>
+      <input type="password" class="form-control" id="password2" required minlength="8" autocomplete="new-password">
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+      <label class="form-check-label" for="agreeTerms" style="font-size:.82rem;">
+        I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.
+      </label>
+    </div>
+
+    <div class="btns-row">
+      <a href="pricing.html" class="btn btn-outline-secondary">Back to Pricing</a>
+      <button type="submit" class="btn btn-teal" id="submitBtn">
+        <i class="bi bi-check-circle me-1"></i>Create Account
+      </button>
+    </div>
+    <div id="msg"></div>
+  </form>
+
+  <p class="trial-note">Your 7-day free trial starts the moment you create your account — no card required.</p>
+  <p class="text-center mt-2" style="font-size:.82rem;">
+    Already have an account? <a href="login.html">Log in</a>
+  </p>
+  <p class="text-center mt-3" style="font-size:.74rem; color:var(--ink-soft);">
+    Need help? <span data-live-setting="ownerEmail">technologyokv@gmail.com</span> · <span data-live-setting="ownerPhone">+2348104141138</span> · <span data-live-setting="ownerWebsite">www.okvtechnology.com</span>
+  </p>
+</div>
+<div style="text-align:center; margin-top:6px; font-size:.74rem; color:#9fc3b7;">
+  <a href="privacy.html" style="color:#9fc3b7; margin:0 6px;">Privacy Policy</a>·
+  <a href="terms.html" style="color:#9fc3b7; margin:0 6px;">Terms of Service</a>·
+  <a href="refund-policy.html" style="color:#9fc3b7; margin:0 6px;">Refund Policy</a>
+</div>
+
+
+<script src="shared.js"></script>
+<script>
+applyLivePlatformSettings();
+const params = new URLSearchParams(window.location.search);
+const planId = params.get('planId') || '';
+const planLabel = params.get('plan') || '';
+const cycle = params.get('cycle') || '';
+const cycleLabels = { monthly:'Billed monthly', biannual:'Billed every 6 months', yearly:'Billed yearly' };
+
+if(planLabel){
+  document.getElementById('planBanner').style.display = 'flex';
+  document.getElementById('planBannerName').textContent = planLabel + ' Plan';
+  document.getElementById('planBannerCycle').textContent = cycleLabels[cycle] || '';
+}
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submitBtn');
+  const orgName = document.getElementById('orgName').value.trim();
+  const fullName = document.getElementById('fullName').value.trim();
+  const username = document.getElementById('username').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const password2 = document.getElementById('password2').value;
+
+  msg.className = ''; msg.textContent = '';
+
+  if(!document.getElementById('agreeTerms').checked){
+    msg.className = 'text-danger'; msg.textContent = 'Please agree to the Terms of Service and Privacy Policy to continue.';
+    return;
+  }
+  if(password !== password2){
+    msg.className = 'text-danger'; msg.textContent = 'Passwords do not match.';
+    return;
+  }
+  if(!navigator.onLine){
+    msg.className = 'text-danger'; msg.textContent = 'You need an internet connection to create your account.';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try{
+    const passwordHash = await sha256Hex(password);
+    const res = await apiCall('signup', { orgName, fullName, username, phone, passwordHash, planId, plan: planLabel, billingCycle: cycle });
+    if(!res.success){
+      msg.className = 'text-danger'; msg.textContent = res.error || 'Could not create your account.';
+      btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Create Account';
+      return;
+    }
+    msg.className = 'text-success';
+    msg.textContent = 'Account created — taking you to installation instructions…';
+    setTimeout(() => {
+      window.location.href = 'install.html?org=' + encodeURIComponent(res.user.orgName || orgName);
+    }, 1000);
+  }catch(err){
+    msg.className = 'text-danger';
+    msg.textContent = (err.message === 'OFFLINE') ? 'You need an internet connection to create your account.' : 'Something went wrong. Please try again.';
+    btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Create Account';
+  }
+});
+</script>
+</body>
+</html>

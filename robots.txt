@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Don't send crawl budget to logged-in-only dashboards and pure utility/
+# transactional pages — they show blank or redirect states to a crawler
+# with no session, and have no standalone content worth ranking.
+Disallow: /app.html
+Disallow: /super-admin.html
+Disallow: /login.html
+Disallow: /reset-password.html
+Disallow: /payment-callback.html
+
+Sitemap: https://PLACEHOLDER-DOMAIN/sitemap.xml

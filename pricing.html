@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — OKV Organization Management System</title>
+<meta name="description" content="Simple Naira pricing for OKV OMS — Starter and Growth plans, billed monthly, bi-annually or yearly. 7-day free trial, no card required, 30-day money-back guarantee.">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{ --teal-950:#0a2420; --teal-900:#0e352e; --teal-800:#134a3d; --teal-700:#1a6350; --gold-500:#d6a13d; --gold-600:#b8862a; --paper:#f7f6f2; --ink:#1c2321; --ink-soft:#647069; --line:#e7e3d9; }
+*{box-sizing:border-box;}
+body{font-family:'Inter',system-ui,sans-serif; color:var(--ink); margin:0; background:var(--paper);}
+h1,h2,h3,.brand{font-family:'Sora',system-ui,sans-serif;}
+.top-bar{background:var(--teal-950); padding:16px 24px;}
+.top-bar .wrap{max-width:1180px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;}
+.nav-brand{display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-weight:800;}
+.nav-mark{width:32px; height:32px; border-radius:8px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); color:var(--teal-950); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:9px; letter-spacing:-.3px;}
+.top-bar a.back{color:#c9dcd5; text-decoration:none; font-size:.85rem; font-weight:600;}
+
+.hero-pricing{text-align:center; padding:56px 24px 20px;}
+.hero-pricing h1{font-size:2rem; font-weight:800; margin-bottom:10px;}
+.hero-pricing p{color:var(--ink-soft); max-width:560px; margin:0 auto;}
+
+.cycle-tabs{display:flex; justify-content:center; gap:6px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:5px; max-width:460px; margin:30px auto 8px;}
+.cycle-tab{flex:1; border:none; background:transparent; padding:10px 8px; border-radius:9px; font-weight:700; font-size:.85rem; color:var(--ink-soft); cursor:pointer; position:relative;}
+.cycle-tab.active{background:var(--teal-950); color:#fff;}
+.cycle-tab .save-badge{display:block; font-size:.65rem; font-weight:700; color:var(--gold-500); margin-top:2px;}
+.cycle-tab.active .save-badge{color:var(--gold-500);}
+.cycle-note{text-align:center; font-size:.8rem; color:var(--ink-soft); margin-bottom:40px;}
+
+.plans-wrap{max-width:1000px; margin:0 auto; padding:0 24px 70px;}
+.plan-group{display:none; grid-template-columns:1fr 1fr; gap:28px;}
+.plan-group.active{display:grid;}
+@media (max-width:760px){.plan-group.active{grid-template-columns:1fr;}}
+
+.plan-card{background:#fff; border:1px solid var(--line); border-radius:18px; padding:32px 28px; position:relative;}
+.plan-card.featured{border:2px solid var(--gold-500); box-shadow:0 20px 50px rgba(182,140,50,.15);}
+.plan-badge{position:absolute; top:-13px; left:28px; background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); color:var(--teal-950); font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; padding:.35em .8em; border-radius:20px;}
+.plan-name{font-size:1.15rem; font-weight:800; margin-bottom:4px;}
+.plan-audience{font-size:.8rem; color:var(--ink-soft); margin-bottom:18px; min-height:34px;}
+.plan-price{font-size:2.1rem; font-weight:800; font-family:'Sora',sans-serif;}
+.plan-price span{font-size:.95rem; font-weight:600; color:var(--ink-soft);}
+.plan-price-sub{font-size:.78rem; color:var(--ink-soft); margin-bottom:22px;}
+.plan-features{list-style:none; padding:0; margin:0 0 26px;}
+.plan-features li{display:flex; gap:10px; font-size:.87rem; margin-bottom:11px;}
+.plan-features i{color:var(--teal-700); margin-top:2px;}
+.btn-teal{background:var(--teal-800); border-color:var(--teal-800); color:#fff; font-weight:700;}
+.btn-teal:hover{background:var(--teal-900); border-color:var(--teal-900); color:#fff;}
+.btn-amber{background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); border:none; color:var(--teal-950); font-weight:700;}
+.btn-amber:hover{color:var(--teal-950); opacity:.92;}
+
+.trust-row{text-align:center; padding:0 24px 60px; color:var(--ink-soft); font-size:.85rem;}
+.trust-row i{color:var(--teal-700); margin-right:5px;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="wrap">
+    <a href="index.html" class="nav-brand"><span class="nav-mark">OKV</span> OKV OMS</a>
+    <a href="index.html" class="back"><i class="bi bi-arrow-left me-1"></i>Back to Home</a>
+  </div>
+</div>
+
+<div class="hero-pricing">
+  <h1>Simple Pricing, Two Tiers</h1>
+  <p>Every plan starts with a 7-day free trial — no card required. Cancel any time, and you're covered by our 30-day money-back guarantee on any paid plan.</p>
+</div>
+
+<div class="cycle-tabs" role="tablist">
+  <button class="cycle-tab active" data-cycle="monthly">Monthly</button>
+  <button class="cycle-tab" data-cycle="biannual">Bi-Annual<span class="save-badge">Save 10%</span></button>
+  <button class="cycle-tab" data-cycle="yearly">Yearly<span class="save-badge">Save 20%</span></button>
+</div>
+<div class="cycle-note" id="cycleNote">Billed monthly. Switch or cancel any time.</div>
+
+<div class="plans-wrap">
+
+  <!-- ===================== MONTHLY ===================== -->
+  <div class="plan-group active" data-cycle-group="monthly">
+    <div class="plan-card" data-plan-card="starter_monthly">
+      <div class="plan-name">Starter</div>
+      <div class="plan-audience">Best for small teams, clubs, and single-branch organizations just getting organized.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="starter_monthly">₦15,000</span><span>/month</span></div>
+      <div class="plan-price-sub">Up to 5 team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> All 12 core modules (Members, Finance, Events, Projects &amp; more)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Offline + online sync across devices</li>
+        <li><i class="bi bi-check-circle-fill"></i> CSV/JSON import</li>
+        <li><i class="bi bi-check-circle-fill"></i> Role-based team access (up to 5 users)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Member &amp; team messaging (email, SMS, WhatsApp)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Email support</li>
+      </ul>
+      <a href="signup.html?planId=starter_monthly&plan=Starter&cycle=monthly" class="btn btn-teal w-100">Start for Free</a>
+    </div>
+    <div class="plan-card featured" data-plan-card="growth_monthly">
+      <span class="plan-badge">Most Popular</span>
+      <div class="plan-name">Growth</div>
+      <div class="plan-audience">Best for growing organizations with multiple departments and a larger team.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="growth_monthly">₦35,000</span><span>/month</span></div>
+      <div class="plan-price-sub">Unlimited team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Everything in Starter</li>
+        <li><i class="bi bi-check-circle-fill"></i> Unlimited team members</li>
+        <li><i class="bi bi-check-circle-fill"></i> Reports &amp; CSV/JSON exports</li>
+        <li><i class="bi bi-check-circle-fill"></i> Backup &amp; restore</li>
+        <li><i class="bi bi-check-circle-fill"></i> Priority email + chat support</li>
+      </ul>
+      <a href="signup.html?planId=growth_monthly&plan=Growth&cycle=monthly" class="btn btn-amber w-100">Start for Free</a>
+    </div>
+  </div>
+
+  <!-- ===================== BI-ANNUAL ===================== -->
+  <div class="plan-group" data-cycle-group="biannual">
+    <div class="plan-card" data-plan-card="starter_biannual">
+      <div class="plan-name">Starter</div>
+      <div class="plan-audience">Best for small teams, clubs, and single-branch organizations just getting organized.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="starter_biannual">₦80,000</span><span>/6 months</span></div>
+      <div class="plan-price-sub">≈ <span data-plan-monthly-equiv="starter_biannual" data-plan-divisor="6">₦13,333/month</span> · Up to 5 team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> All 12 core modules (Members, Finance, Events, Projects &amp; more)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Offline + online sync across devices</li>
+        <li><i class="bi bi-check-circle-fill"></i> CSV/JSON import</li>
+        <li><i class="bi bi-check-circle-fill"></i> Role-based team access (up to 5 users)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Member &amp; team messaging (email, SMS, WhatsApp)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Email support</li>
+      </ul>
+      <a href="signup.html?planId=starter_biannual&plan=Starter&cycle=biannual" class="btn btn-teal w-100">Start for Free</a>
+    </div>
+    <div class="plan-card featured" data-plan-card="growth_biannual">
+      <span class="plan-badge">Most Popular</span>
+      <div class="plan-name">Growth</div>
+      <div class="plan-audience">Best for growing organizations with multiple departments and a larger team.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="growth_biannual">₦190,000</span><span>/6 months</span></div>
+      <div class="plan-price-sub">≈ <span data-plan-monthly-equiv="growth_biannual" data-plan-divisor="6">₦31,667/month</span> · Unlimited team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Everything in Starter</li>
+        <li><i class="bi bi-check-circle-fill"></i> Unlimited team members</li>
+        <li><i class="bi bi-check-circle-fill"></i> Reports &amp; CSV/JSON exports</li>
+        <li><i class="bi bi-check-circle-fill"></i> Backup &amp; restore</li>
+        <li><i class="bi bi-check-circle-fill"></i> Priority email + chat support</li>
+      </ul>
+      <a href="signup.html?planId=growth_biannual&plan=Growth&cycle=biannual" class="btn btn-amber w-100">Start for Free</a>
+    </div>
+  </div>
+
+  <!-- ===================== YEARLY ===================== -->
+  <div class="plan-group" data-cycle-group="yearly">
+    <div class="plan-card" data-plan-card="starter_yearly">
+      <div class="plan-name">Starter</div>
+      <div class="plan-audience">Best for small teams, clubs, and single-branch organizations just getting organized.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="starter_yearly">₦140,000</span><span>/year</span></div>
+      <div class="plan-price-sub">≈ <span data-plan-monthly-equiv="starter_yearly" data-plan-divisor="12">₦11,667/month</span> · Up to 5 team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> All 12 core modules (Members, Finance, Events, Projects &amp; more)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Offline + online sync across devices</li>
+        <li><i class="bi bi-check-circle-fill"></i> CSV/JSON import</li>
+        <li><i class="bi bi-check-circle-fill"></i> Role-based team access (up to 5 users)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Member &amp; team messaging (email, SMS, WhatsApp)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Email support</li>
+      </ul>
+      <a href="signup.html?planId=starter_yearly&plan=Starter&cycle=yearly" class="btn btn-teal w-100">Start for Free</a>
+    </div>
+    <div class="plan-card featured" data-plan-card="growth_yearly">
+      <span class="plan-badge">Most Popular</span>
+      <div class="plan-name">Growth</div>
+      <div class="plan-audience">Best for growing organizations with multiple departments and a larger team.</div>
+      <div class="plan-price"><span class="price-amount" data-plan-price="growth_yearly">₦330,000</span><span>/year</span></div>
+      <div class="plan-price-sub">≈ <span data-plan-monthly-equiv="growth_yearly" data-plan-divisor="12">₦27,500/month</span> · Unlimited team members</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Everything in Starter</li>
+        <li><i class="bi bi-check-circle-fill"></i> Unlimited team members</li>
+        <li><i class="bi bi-check-circle-fill"></i> Reports &amp; CSV/JSON exports</li>
+        <li><i class="bi bi-check-circle-fill"></i> Backup &amp; restore</li>
+        <li><i class="bi bi-check-circle-fill"></i> Priority email + chat support</li>
+      </ul>
+      <a href="signup.html?planId=growth_yearly&plan=Growth&cycle=yearly" class="btn btn-amber w-100">Start for Free</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="trust-row">
+  <i class="bi bi-patch-check-fill"></i>30-day money-back guarantee on every paid plan &nbsp;·&nbsp;
+  <i class="bi bi-shield-lock"></i>No card required for your 7-day trial
+</div>
+
+<div class="trust-row" style="padding-top:0; padding-bottom:14px;">
+  Questions before you start? <i class="bi bi-envelope"></i> <span data-live-setting="ownerEmail">technologyokv@gmail.com</span> &nbsp;·&nbsp;
+  <i class="bi bi-telephone"></i> <span data-live-setting="ownerPhone">+2348104141138</span> &nbsp;·&nbsp;
+  <i class="bi bi-globe"></i> <span data-live-setting="ownerWebsite">www.okvtechnology.com</span>
+</div>
+
+<div class="trust-row" style="padding-top:0; padding-bottom:40px; font-size:.78rem;">
+  &copy; <span id="year"></span> OKV Technology Consults ·
+  <a href="privacy.html" style="color:var(--ink-soft);">Privacy Policy</a> ·
+  <a href="terms.html" style="color:var(--ink-soft);">Terms of Service</a> ·
+  <a href="refund-policy.html" style="color:var(--ink-soft);">Refund Policy</a>
+</div>
+
+<script src="shared.js"></script>
+<script>
+applyLivePlatformSettings();
+applyLivePricing();
+document.getElementById('year').textContent = new Date().getFullYear();
+
+async function applyLivePricing(){
+  if(!navigator.onLine) return;
+  try{
+    const cfg = await apiCall('getPlatformConfig', {});
+    if(!cfg || !cfg.success) return;
+    document.querySelectorAll('[data-plan-price]').forEach(el => {
+      const key = 'price_' + el.getAttribute('data-plan-price');
+      if(cfg[key] !== undefined && cfg[key] !== '') el.textContent = '₦' + Math.round(Number(cfg[key])).toLocaleString();
+    });
+    document.querySelectorAll('[data-plan-monthly-equiv]').forEach(el => {
+      const planId = el.getAttribute('data-plan-monthly-equiv');
+      const divisor = Number(el.getAttribute('data-plan-divisor')) || 1;
+      const key = 'price_' + planId;
+      if(cfg[key] !== undefined && cfg[key] !== '' && !isNaN(Number(cfg[key]))){
+        el.textContent = '₦' + Math.round(Number(cfg[key]) / divisor).toLocaleString() + '/month';
+      }
+    });
+    document.querySelectorAll('[data-plan-card]').forEach(card => {
+      const planId = card.getAttribute('data-plan-card');
+      const activeKey = 'planActive_' + planId;
+      const isActive = cfg[activeKey] === undefined || cfg[activeKey] === 'true' || cfg[activeKey] === true;
+      card.style.display = isActive ? '' : 'none';
+    });
+  }catch(e){ /* best-effort — static fallback prices stay visible */ }
+}
+
+const notes = {
+  monthly: 'Billed monthly. Switch or cancel any time.',
+  biannual: 'Billed once every 6 months — save 10% versus monthly.',
+  yearly: 'Billed once a year — save 20% versus monthly.'
+};
+document.querySelectorAll('.cycle-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.cycle-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const cycle = tab.dataset.cycle;
+    document.querySelectorAll('.plan-group').forEach(g => g.classList.toggle('active', g.dataset.cycleGroup === cycle));
+    document.getElementById('cycleNote').textContent = notes[cycle];
+  });
+});
+</script>
+</body>
+</html>

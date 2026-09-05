@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Install — OKV Organization Management System</title>
+<meta name="description" content="Install OKV OMS on your phone, tablet or computer home screen — no app store needed. Step-by-step guide for Android, iPhone/iPad and desktop.">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a2420">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OKV OMS">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --teal-950:#0a2420; --teal-900:#0e352e; --teal-800:#134a3d; --teal-700:#1a6350;
+  --gold-500:#d6a13d; --gold-600:#b8862a; --ink:#1c2321; --ink-soft:#647069;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',system-ui,sans-serif; color:var(--ink); margin:0;
+  min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%, #133c33 0%, var(--teal-950) 55%, #071915 100%);
+}
+h1,h2{font-family:'Sora',system-ui,sans-serif;}
+
+.install-card{
+  background:#fff; border-radius:18px; max-width:460px; width:100%;
+  padding:34px 28px 28px; text-align:center; box-shadow:0 30px 70px rgba(0,0,0,.45);
+  animation:popIn .35s cubic-bezier(.2,.9,.3,1.25);
+}
+@keyframes popIn{from{transform:scale(.92); opacity:0;} to{transform:scale(1); opacity:1;}}
+
+.brand-mark{
+  width:58px; height:58px; border-radius:15px; margin:0 auto 16px;
+  background:linear-gradient(145deg, var(--gold-500), var(--gold-600));
+  color:var(--teal-950); display:flex; align-items:center; justify-content:center;
+  font-family:'Sora',sans-serif; font-weight:800; font-size:1.05rem; letter-spacing:-.2px; box-shadow:0 8px 22px rgba(182,140,50,.35);
+}
+.install-card h1{font-size:1.28rem; font-weight:800; margin:0 0 6px; line-height:1.25;}
+.install-card .tagline{font-size:.85rem; color:var(--ink-soft); margin-bottom:18px;}
+.badge-tag{display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--teal-950); background:linear-gradient(145deg, var(--gold-500), var(--gold-600)); border-radius:20px; padding:.3em .85em; margin-bottom:12px;}
+.org-note{font-size:.8rem; color:var(--teal-800); font-weight:700; margin-bottom:16px;}
+
+.device-tabs{display:flex; gap:6px; background:#f3efe6; border-radius:10px; padding:4px; margin-bottom:18px;}
+.device-tab{flex:1; border:none; background:transparent; padding:8px 6px; border-radius:7px; font-size:.76rem; font-weight:700;
+  color:var(--ink-soft); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px;}
+.device-tab i{font-size:1.05rem;}
+.device-tab.active{background:var(--teal-950); color:#fff;}
+
+#instructionPanel{text-align:left;}
+.step-list{font-size:.86rem; color:var(--ink); padding-left:20px; margin:0 0 16px;}
+.step-list li{margin-bottom:9px; line-height:1.4;}
+.step-list strong{color:var(--teal-900);}
+.panel-lead{font-size:.85rem; color:var(--ink-soft); margin-bottom:14px;}
+.fallback-note{font-size:.74rem; color:var(--ink-soft); margin-top:10px; text-align:center;}
+.pulse-btn{animation:pulseGlow 1.8s ease-in-out infinite;}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(214,161,61,.55);} 50%{box-shadow:0 0 0 10px rgba(214,161,61,0);}}
+.btn-amber{background:var(--gold-500); border-color:var(--gold-500); color:#2a2005; font-weight:700;}
+.btn-amber:hover{background:var(--gold-600); border-color:var(--gold-600); color:#2a2005;}
+.btn-amber:disabled{opacity:.55; animation:none;}
+
+#successPanel{display:none;}
+#successPanel .check-mark{font-size:3rem; color:#2f7d5a; margin-bottom:6px;}
+#successPanel h2{font-size:1.15rem; font-weight:800; margin-bottom:6px;}
+#successPanel p{font-size:.85rem; color:var(--ink-soft); margin-bottom:18px;}
+
+.privacy-note{font-size:.74rem; color:var(--ink-soft); margin-top:20px; display:flex; align-items:center; justify-content:center; gap:6px;}
+.privacy-note i{color:var(--teal-700);}
+</style>
+</head>
+<body>
+
+<div class="install-card">
+  <div class="brand-mark">OKV</div>
+  <span class="badge-tag">Team Access</span>
+  <h1>OKV Organization Management System</h1>
+  <p class="tagline" id="tagline">Install the app to get access to your organization's dashboard.</p>
+  <p class="org-note" id="orgNote" style="display:none;"></p>
+
+  <div id="mainPanel">
+    <div class="device-tabs" role="tablist">
+      <button class="device-tab" data-device="android" id="tabAndroid"><i class="bi bi-android2"></i>Android</button>
+      <button class="device-tab" data-device="ios" id="tabIos"><i class="bi bi-apple"></i>iPhone / iPad</button>
+      <button class="device-tab" data-device="desktop" id="tabDesktop"><i class="bi bi-display"></i>Desktop</button>
+    </div>
+    <div id="instructionPanel"></div>
+  </div>
+
+  <div id="successPanel">
+    <div class="check-mark"><i class="bi bi-check-circle-fill"></i></div>
+    <h2>Installed!</h2>
+    <p>Taking you to the log-in screen…</p>
+    <button id="openLoginBtn" class="btn btn-teal btn-lg w-100" style="background:var(--teal-800); border-color:var(--teal-800); color:#fff;">
+      <i class="bi bi-box-arrow-in-right me-2"></i>Go to Log In
+    </button>
+  </div>
+
+  <p class="privacy-note"><i class="bi bi-shield-lock"></i> Your organization's data — private to your team.</p>
+  <p class="privacy-note" style="margin-top:6px;">Need help installing? <span data-live-setting="ownerEmail">technologyokv@gmail.com</span> · <span data-live-setting="ownerPhone">+2348104141138</span></p>
+</div>
+<div style="text-align:center; margin-top:6px; font-size:.74rem; color:#9fc3b7;">
+  <a href="privacy.html" style="color:#9fc3b7; margin:0 6px;">Privacy Policy</a>·
+  <a href="terms.html" style="color:#9fc3b7; margin:0 6px;">Terms of Service</a>·
+  <a href="refund-policy.html" style="color:#9fc3b7; margin:0 6px;">Refund Policy</a>
+</div>
+
+
+<script src="shared.js"></script>
+<script>
+applyLivePlatformSettings();
+let deferredPrompt = null;
+
+function detectPlatform(){
+  const ua = navigator.userAgent || '';
+  const isIOS = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+  const isAndroid = /android/i.test(ua);
+  const isSafari = /^((?!chrome|crios|android).)*safari/i.test(ua);
+  const isMac = /Macintosh/.test(ua) && !isIOS;
+  if(isIOS) return 'ios';
+  if(isAndroid) return 'android';
+  if(isMac && isSafari) return 'mac-safari';
+  return 'desktop';
+}
+function isStandalone(){
+  return ('standalone' in window.navigator && window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+const detected = detectPlatform();
+const detectedTab = detected === 'ios' ? 'ios' : (detected === 'android' ? 'android' : 'desktop');
+let currentTab = detectedTab;
+
+// Optional ?org=Org%20Name query param, set by the Admin's shareable link, purely cosmetic.
+const orgParam = new URLSearchParams(window.location.search).get('org');
+if(orgParam){
+  const note = document.getElementById('orgNote');
+  note.textContent = `You've been invited to join ${orgParam}`;
+  note.style.display = 'block';
+}
+
+function goToLogin(){ window.location.href = 'login.html'; }
+
+function showSuccess(){
+  document.getElementById('mainPanel').style.display = 'none';
+  document.getElementById('successPanel').style.display = 'block';
+  setTimeout(goToLogin, 1400);
+}
+document.getElementById('openLoginBtn').addEventListener('click', goToLogin);
+
+function androidPanel(active){
+  return `
+    <p class="panel-lead">${active ? 'Tap the button below — your browser will show its native install prompt.' : "Preview only — open this page on an Android device to install there."}</p>
+    <button id="androidInstallBtn" class="btn btn-amber btn-lg w-100 ${active ? 'pulse-btn' : ''}" ${active ? '' : 'disabled'}>
+      <i class="bi bi-download me-2"></i>Install App
+    </button>
+    <p class="fallback-note">${active ? 'Button not responding yet? Open your browser menu (⋮) and tap <strong>Install app</strong> or <strong>Add to Home screen</strong> instead.' : ''}</p>
+    ${active ? `<button id="androidManualBtn" class="btn btn-outline-secondary btn-sm w-100 mt-2">I installed it another way — Continue</button>` : ''}
+  `;
+}
+function iosPanel(active){
+  return `
+    <p class="panel-lead">${active ? 'Safari doesn\u2019t show an automatic install button — add it to your Home Screen in a few taps:' : 'Preview only — open this page in Safari on an iPhone/iPad to install there.'}</p>
+    <ol class="step-list">
+      <li>Tap the <strong>Share</strong> icon <i class="bi bi-box-arrow-up"></i> in Safari's toolbar.</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong> in the top-right corner.</li>
+      <li>Close Safari, then open the new <strong>OKV OMS</strong> icon from your Home Screen.</li>
+    </ol>
+    ${active ? `<button id="iosDoneBtn" class="btn btn-amber btn-lg w-100 pulse-btn">I've added it — Continue</button>` : ''}
+  `;
+}
+function desktopPanel(active){
+  if(active && detected === 'mac-safari'){
+    return `
+      <p class="panel-lead">Safari on Mac supports adding this app to your Dock:</p>
+      <ol class="step-list">
+        <li>Click the <strong>Share</strong> icon <i class="bi bi-box-arrow-up"></i> in Safari's toolbar (or the <strong>File</strong> menu).</li>
+        <li>Choose <strong>Add to Dock</strong>.</li>
+        <li>Click <strong>Add</strong>.</li>
+        <li>Open the app from your Dock — it runs in its own window from here on.</li>
+      </ol>
+      <button id="desktopManualBtn" class="btn btn-amber btn-lg w-100 pulse-btn">I've added it — Continue</button>
+    `;
+  }
+  return `
+    <p class="panel-lead">${active ? 'Tap the button below — Chrome, Edge, and most Chromium browsers will show a native install prompt.' : 'Preview only — open this page on a desktop browser to install there.'}</p>
+    <button id="desktopInstallBtn" class="btn btn-amber btn-lg w-100 ${active ? 'pulse-btn' : ''}" ${active ? '' : 'disabled'}>
+      <i class="bi bi-download me-2"></i>Install App
+    </button>
+    <p class="fallback-note">${active ? 'Button not responding? Look for the install icon in your address bar, or open your browser menu → <strong>Install app</strong>.' : ''}</p>
+    ${active ? `<button id="desktopManualBtn" class="btn btn-outline-secondary btn-sm w-100 mt-2">My browser doesn't support this — Continue anyway</button>` : ''}
+  `;
+}
+
+function renderPanel(){
+  document.querySelectorAll('.device-tab').forEach(t => t.classList.toggle('active', t.dataset.device === currentTab));
+  const active = currentTab === detectedTab;
+  const html = currentTab === 'android' ? androidPanel(active) : currentTab === 'ios' ? iosPanel(active) : desktopPanel(active);
+  document.getElementById('instructionPanel').innerHTML = html;
+  wirePanelButtons();
+}
+function wirePanelButtons(){
+  const map = {
+    androidInstallBtn: triggerNativeInstall, desktopInstallBtn: triggerNativeInstall,
+    androidManualBtn: showSuccess, desktopManualBtn: showSuccess, iosDoneBtn: showSuccess
+  };
+  Object.keys(map).forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener('click', map[id]); });
+}
+async function triggerNativeInstall(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  if(outcome === 'accepted') showSuccess();
+}
+document.querySelectorAll('.device-tab').forEach(tab => tab.addEventListener('click', () => { currentTab = tab.dataset.device; renderPanel(); }));
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if(currentTab === detectedTab && (detectedTab === 'android' || detectedTab === 'desktop')){
+    const btn = document.getElementById(detectedTab === 'android' ? 'androidInstallBtn' : 'desktopInstallBtn');
+    if(btn) btn.removeAttribute('disabled');
+  }
+});
+window.addEventListener('appinstalled', showSuccess);
+
+document.addEventListener('DOMContentLoaded', () => {
+  if(isStandalone()){ goToLogin(); return; }
+  renderPanel();
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
